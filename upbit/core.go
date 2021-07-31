@@ -1,0 +1,147 @@
+package upbit
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"neosouler7/bookstore-go/commons"
+	"neosouler7/bookstore-go/restmanager"
+	"neosouler7/bookstore-go/websocketmanager"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+)
+
+const LATENCY_ALLOWED float64 = 10.0 // per 1 second
+
+// set redis pipeline global
+// var pipe = redisManager.GetRedisPipeline()
+
+// func upbExecPipeline(exchange string) {
+// 	for {
+// 		redisManager.ExecPipeline(exchange, &pipe)
+// 		time.Sleep(time.Second * 1)
+// 		fmt.Println("UPB execute pipeline")
+// 	}
+// }
+
+func upbPingWs(wsConn *websocket.Conn) {
+	msg := "PING"
+	for {
+		err := websocketmanager.SendWsMsg(wsConn, msg)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		time.Sleep(time.Second * 5)
+	}
+}
+
+func upbSubscribeWs(wsConn *websocket.Conn, pairs interface{}) {
+	time.Sleep(time.Second * 1)
+	var streamSlice []string
+	for _, pair := range pairs.([]string) {
+		var pairInfo = strings.Split(pair, ":")
+		var market = strings.ToUpper(pairInfo[0])
+		var symbol = strings.ToUpper(pairInfo[1])
+
+		streamSlice = append(streamSlice, fmt.Sprintf("'%s-%s'", market, symbol))
+	}
+	uuid := uuid.NewString()
+	streams := strings.Join(streamSlice, ",")
+	msg := fmt.Sprintf("[{'ticket':'%s'}, {'type': 'orderbook', 'codes': [%s]}]", uuid, streams)
+
+	err := websocketmanager.SendWsMsg(wsConn, msg)
+	log.Println("UPB subscribe msg sent!")
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func upbReceiveWs(wsConn *websocket.Conn, exchange string) {
+	for {
+		_, message, err := wsConn.ReadMessage()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		if strings.Contains(string(message), "status") {
+			fmt.Println("PONG") // {"status":"UP"}
+		} else {
+			var rJson interface{}
+			err = json.Unmarshal(message, &rJson)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			err := UpbSetOrderbook("W", exchange, rJson.(map[string]interface{}))
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}
+}
+
+func upbRest(exchange string, pairs interface{}) {
+	c := make(chan map[string]interface{})
+
+	for {
+		for _, pair := range pairs.([]string) {
+			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
+		}
+
+		for i := 0; i < len(pairs.([]string)); i++ {
+			rJson := <-c
+
+			err := UpbSetOrderbook("R", exchange, rJson)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+
+		// 1번에 (1s / LATENCY_ALLOWD) = 0.1s 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
+		// ex) 0.1s * 2 = 0.2s => 200ms
+		buffer := 1.0
+		pairsLength := float64(len(pairs.([]string))) * buffer
+		time.Sleep(time.Millisecond * time.Duration(int(1/LATENCY_ALLOWED*pairsLength*10*100)))
+	}
+}
+
+func Run(exchange string) {
+	var pairs = commons.ReadConfig("Pairs")
+
+	// [get websocket connection]
+	wsConn, err := websocketmanager.GetWsConn(exchange)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// [execute pipeline]
+	// not sure of using pipeline ...
+	// go upbExecPipeline(exchange)
+
+	var wg sync.WaitGroup
+
+	// [ping]
+	wg.Add(1)
+	go upbPingWs(wsConn)
+
+	// [subscribe websocket stream]
+	wg.Add(1)
+	go func() {
+		upbSubscribeWs(wsConn, pairs)
+		wg.Done()
+	}()
+
+	// [receive websocket msg]
+	wg.Add(1)
+	go upbReceiveWs(wsConn, exchange)
+
+	// [rest]
+	wg.Add(1)
+	go upbRest(exchange, pairs)
+
+	wg.Wait()
+}

@@ -1,0 +1,13 @@
+{
+    "Redis": {
+        "host": "",
+        "port": "",
+        "pwd": "",
+        "db": 0
+    },
+    "Tg": {
+        "token": "",
+        "chat_ids": []
+    },
+    "Pairs": ["krw:eth:30", "krw:xrp:300"]
+}
