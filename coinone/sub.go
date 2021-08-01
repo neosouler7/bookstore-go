@@ -14,9 +14,9 @@ var (
 	errSetOrderbook     = errors.New("[ERROR] setting ob")
 )
 
-func ConSetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
+func SetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
 	// con differs "market-symbol" receive form by api type
-	var targetVolumeMap = commons.GetTargetVolumeMap()
+	var targetVolumeMap = commons.GetTargetVolumeMap(exchange)
 	var market, symbol, targetVolume, ts string
 	var askResponse, bidResponse []interface{}
 	var askSlice, bidSlice []interface{}

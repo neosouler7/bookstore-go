@@ -14,7 +14,7 @@ var (
 	errSetOrderbook     = errors.New("[ERROR] setting ob")
 )
 
-func UpbSetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
+func SetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
 	// upb differs "market-symbol" receive form by api type
 	var pair string
 	switch api {
@@ -26,7 +26,7 @@ func UpbSetOrderbook(api string, exchange string, rJson map[string]interface{}) 
 	var pairInfo = strings.Split(pair, "-")
 	var market = strings.ToLower(pairInfo[0])
 	var symbol = strings.ToLower(pairInfo[1])
-	var targetVolumeMap = commons.GetTargetVolumeMap()
+	var targetVolumeMap = commons.GetTargetVolumeMap(exchange)
 	var targetVolume = targetVolumeMap[market+":"+symbol]
 
 	tsFloat := int(rJson["timestamp"].(float64))

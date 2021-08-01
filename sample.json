@@ -9,5 +9,8 @@
         "token": "",
         "chat_ids": []
     },
-    "Pairs": ["krw:eth:30", "krw:xrp:300"]
+    "Pairs": {
+        "upb": ["krw:eth:30", "krw:xrp:300"],
+        "con": ["krw:eth:30", "krw:xrp:300"]
+    }
 }

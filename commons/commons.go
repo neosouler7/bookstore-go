@@ -12,7 +12,7 @@ import (
 type config struct {
 	Redis map[string]interface{}
 	Tg    map[string]interface{}
-	Pairs []string
+	Pairs map[string]interface{}
 }
 
 func getAttr(obj interface{}, fieldName string) reflect.Value {
@@ -52,12 +52,12 @@ func FormatTs(ts string) string {
 	}
 }
 
-func GetTargetVolumeMap() map[string]string {
+func GetTargetVolumeMap(exchange string) map[string]string {
 	volumeMap := make(map[string]string)
 
-	pairs := ReadConfig("Pairs")
-	for _, p := range pairs.([]string) {
-		var pairInfo = strings.Split(p, ":")
+	pairs := ReadConfig("Pairs").(map[string]interface{})[exchange]
+	for _, p := range pairs.([]interface{}) {
+		var pairInfo = strings.Split(p.(string), ":")
 		var market = pairInfo[0]
 		var symbol = pairInfo[1]
 		var targetVolume = pairInfo[2]
