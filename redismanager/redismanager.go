@@ -18,7 +18,7 @@ var (
 	rdb                *redis.Client
 	errInitRedisClient = errors.New("[ERROR] connecting redis")
 	errSetRedis        = errors.New("[ERROR] set redis")
-	errExecRedis       = errors.New("[ERROR] execu redis")
+	// errExecRedis       = errors.New("[ERROR] execu redis")
 )
 
 func init() {
