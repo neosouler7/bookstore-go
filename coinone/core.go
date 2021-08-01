@@ -36,7 +36,7 @@ var (
 func conPingWs(wsConn *websocket.Conn) {
 	msg := "{\"requestType\": \"PING\"}"
 	for {
-		err := websocketmanager.SendWsMsg(wsConn, msg)
+		err := websocketmanager.SendMsg(wsConn, msg)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -52,12 +52,12 @@ func conSubscribeWs(wsConn *websocket.Conn, pairs interface{}) {
 		var symbol = strings.ToUpper(pairInfo[1])
 
 		msg := "{\"requestType\": \"SUBSCRIBE\", \"body\": {\"channel\": \"ORDERBOOK\", \"topic\": {\"priceCurrency\": \"" + strings.ToUpper(market) + "\", \"productCurrency\": \"" + strings.ToUpper(symbol) + "\", \"group\": \"EXPANDED\", \"size\": 30}}}"
-		err := websocketmanager.SendWsMsg(wsConn, msg)
+		err := websocketmanager.SendMsg(wsConn, msg)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
-	log.Println("CON subscribe msg sent!")
+	fmt.Println("CON websocket subscribe msg sent!")
 }
 
 func conReceiveWs(wsConn *websocket.Conn, exchange string) {
@@ -129,7 +129,7 @@ func Run(exchange string) {
 	var pairs = commons.ReadConfig("Pairs")
 
 	// [get websocket connection]
-	wsConn, err := websocketmanager.GetWsConn(exchange)
+	wsConn, err := websocketmanager.GetConn(exchange)
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -11,8 +11,10 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const UPB_REST string = "https://api.upbit.com"
-const CON_REST string = "https://api.coinone.co.kr"
+const (
+	upbEndPoint string = "https://api.upbit.com"
+	conEndPoint string = "https://api.coinone.co.kr"
+)
 
 func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
 	var pairInfo = strings.Split(pair, ":")
@@ -24,10 +26,10 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	default:
 		fmt.Println("proper exchange needed on HttpRequest")
 	case "upb":
-		endPoint = UPB_REST + "/v1/orderbook"
+		endPoint = upbEndPoint + "/v1/orderbook"
 		queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
 	case "con":
-		endPoint = CON_REST + "/orderbook/"
+		endPoint = conEndPoint + "/orderbook/"
 		queryString = fmt.Sprintf("currency=%s", strings.ToUpper(symbol))
 	}
 
@@ -83,9 +85,9 @@ func HttpRequest(c chan<- map[string]interface{}, exchange string, method string
 	default:
 		fmt.Println("proper exchange needed on HttpRequest")
 	case "upb":
-		endPoint = UPB_REST + "/v1/orderbook"
+		endPoint = upbEndPoint + "/v1/orderbook"
 	case "con":
-		endPoint = CON_REST + "/orderbook/"
+		endPoint = conEndPoint + "/orderbook/"
 	}
 
 	req, err := http.NewRequest(method, endPoint, nil)

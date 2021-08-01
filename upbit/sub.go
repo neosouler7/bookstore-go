@@ -15,7 +15,7 @@ var (
 )
 
 func UpbSetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
-	// upb differs "market-symbol" receive form
+	// upb differs "market-symbol" receive form by api type
 	var pair string
 	switch api {
 	case "R":

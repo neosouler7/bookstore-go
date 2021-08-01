@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const LATENCY_ALLOWED float64 = 10.0 // per 1 second
+const latencyAllowed float64 = 10.0 // per 1 second
 
 // set redis pipeline global
 // var pipe = redisManager.GetRedisPipeline()
@@ -31,7 +31,7 @@ const LATENCY_ALLOWED float64 = 10.0 // per 1 second
 func upbPingWs(wsConn *websocket.Conn) {
 	msg := "PING"
 	for {
-		err := websocketmanager.SendWsMsg(wsConn, msg)
+		err := websocketmanager.SendMsg(wsConn, msg)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -53,8 +53,8 @@ func upbSubscribeWs(wsConn *websocket.Conn, pairs interface{}) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("[{'ticket':'%s'}, {'type': 'orderbook', 'codes': [%s]}]", uuid, streams)
 
-	err := websocketmanager.SendWsMsg(wsConn, msg)
-	log.Println("UPB subscribe msg sent!")
+	err := websocketmanager.SendMsg(wsConn, msg)
+	fmt.Println("UPB websocket subscribe msg sent!")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -105,7 +105,7 @@ func upbRest(exchange string, pairs interface{}) {
 		// ex) 0.1s * 2 = 0.2s => 200ms
 		buffer := 1.0
 		pairsLength := float64(len(pairs.([]string))) * buffer
-		time.Sleep(time.Millisecond * time.Duration(int(1/LATENCY_ALLOWED*pairsLength*10*100)))
+		time.Sleep(time.Millisecond * time.Duration(int(1/latencyAllowed*pairsLength*10*100)))
 	}
 }
 
@@ -113,7 +113,7 @@ func Run(exchange string) {
 	var pairs = commons.ReadConfig("Pairs")
 
 	// [get websocket connection]
-	wsConn, err := websocketmanager.GetWsConn(exchange)
+	wsConn, err := websocketmanager.GetConn(exchange)
 	if err != nil {
 		log.Fatalln(err)
 	}

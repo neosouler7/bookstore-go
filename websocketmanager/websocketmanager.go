@@ -2,7 +2,6 @@ package websocketmanager
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/url"
 
@@ -14,22 +13,23 @@ var (
 	errSendWsMsg = errors.New("[ERROR] sending msg on ws")
 )
 
-const UPB_WS string = "api.upbit.com"
-const CON_WS string = "public-ws-api.coinone.co.kr"
+const (
+	upbEndPoint string = "api.upbit.com"
+	conEndPoint string = "public-ws-api.coinone.co.kr"
+)
 
-func GetWsConn(exchange string) (*websocket.Conn, error) {
+func GetConn(exchange string) (*websocket.Conn, error) {
 	var host, path string
 	switch exchange {
 	case "upb":
-		host = UPB_WS
+		host = upbEndPoint
 		path = "/websocket/v1"
 	case "con":
-		host = CON_WS
+		host = conEndPoint
 		path = ""
 	}
 
 	u := url.URL{Scheme: "wss", Host: host, Path: path}
-	fmt.Printf("connecting to %s\n", u.String())
 	wsConn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return nil, errGetWsConn
@@ -39,7 +39,7 @@ func GetWsConn(exchange string) (*websocket.Conn, error) {
 	return wsConn, nil
 }
 
-func SendWsMsg(wsConn *websocket.Conn, msg string) error {
+func SendMsg(wsConn *websocket.Conn, msg string) error {
 	err := wsConn.WriteMessage(websocket.TextMessage, []byte(msg))
 	if err != nil {
 		log.Fatalln(errSendWsMsg)

@@ -15,7 +15,7 @@ var (
 )
 
 func ConSetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
-	// con differs "market-symbol" receive form
+	// con differs "market-symbol" receive form by api type
 	var targetVolumeMap = commons.GetTargetVolumeMap()
 	var market, symbol, targetVolume, ts string
 	var askResponse, bidResponse []interface{}

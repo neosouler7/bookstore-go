@@ -11,27 +11,27 @@ import (
 )
 
 var (
-	errorExchangeNotFound = errors.New("[ERROR] enter proper exchange")
+	errExecFormat       = errors.New("[ERROR] ex) go run main.go {exchange}")
+	errExchangeNotFound = errors.New("[ERROR] enter proper exchange")
 )
 
 func main() {
 	args := os.Args
 	if len(args) != 2 {
-		panic(errorExchangeNotFound)
+		log.Fatalln(errExecFormat)
 	}
-	exchange := args[1]
 
-	// send start msg
-	tgMsg := fmt.Sprintf("[bookstore-GO] %s\n", exchange)
+	exchange := args[1]
+	tgMsg := fmt.Sprintf("[bookstore-go] %s\n", exchange)
 
 	switch exchange {
 	default:
-		log.Fatalln(errorExchangeNotFound)
+		log.Fatalln(errExchangeNotFound)
 	case "upb":
-		tgmanager.SendTgMessage(tgMsg)
+		tgmanager.SendMsg(tgMsg)
 		upbit.Run(exchange)
 	case "con":
-		tgmanager.SendTgMessage(tgMsg)
+		tgmanager.SendMsg(tgMsg)
 		coinone.Run(exchange)
 	}
 }
