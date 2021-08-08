@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"neosouler7/bookstore-go/binance"
 	"neosouler7/bookstore-go/coinone"
 	"neosouler7/bookstore-go/tgmanager"
 	"neosouler7/bookstore-go/upbit"
@@ -33,5 +34,8 @@ func main() {
 	case "con":
 		tgmanager.SendMsg(tgMsg)
 		coinone.Run(exchange)
+	case "bin":
+		tgmanager.SendMsg(tgMsg)
+		binance.Run(exchange)
 	}
 }

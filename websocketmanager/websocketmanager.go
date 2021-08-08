@@ -16,6 +16,7 @@ var (
 const (
 	upbEndPoint string = "api.upbit.com"
 	conEndPoint string = "public-ws-api.coinone.co.kr"
+	binEndPoint string = "stream.binance.com:9443"
 )
 
 func GetConn(exchange string) (*websocket.Conn, error) {
@@ -27,6 +28,9 @@ func GetConn(exchange string) (*websocket.Conn, error) {
 	case "con":
 		host = conEndPoint
 		path = ""
+	case "bin":
+		host = binEndPoint
+		path = "/stream"
 	}
 
 	u := url.URL{Scheme: "wss", Host: host, Path: path}
