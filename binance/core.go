@@ -49,18 +49,6 @@ func receiveWs(wsConn *websocket.Conn, exchange string) {
 			log.Fatalln(err)
 		}
 
-		if strings.Contains(string(message), "ping") {
-			fmt.Printf("ping")
-			fmt.Printf(string(message))
-			panic(err)
-		}
-
-		if strings.Contains(string(message), "pong") {
-			fmt.Printf("pong")
-			fmt.Printf(string(message))
-			panic(err)
-		}
-
 		if strings.Contains(string(message), "result") {
 			fmt.Printf("BIN ws pass : %s\n", string(message))
 		} else {
