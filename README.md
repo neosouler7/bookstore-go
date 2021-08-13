@@ -9,7 +9,9 @@
 
 - 업비트: upb (RESTful, Websocket)
 - 코인원: con (RESTful, Websocket)
-  > 코인원 Websocket의 경우 자체 VIP 선정 되어야 사용 가능
+- 바이낸스: bin (RESTful, Websocket)
+- 코빗: kbt (RESTful, Websocket)
+  > 코인원 Websocket의 경우 코인원 VIP 선정 되어야 사용 가능
 
 ## 실행 방법
 

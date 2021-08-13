@@ -6,6 +6,7 @@ import (
 	"log"
 	"neosouler7/bookstore-go/binance"
 	"neosouler7/bookstore-go/coinone"
+	"neosouler7/bookstore-go/korbit"
 	"neosouler7/bookstore-go/tgmanager"
 	"neosouler7/bookstore-go/upbit"
 	"os"
@@ -37,5 +38,8 @@ func main() {
 	case "bin":
 		tgmanager.SendMsg(tgMsg)
 		binance.Run(exchange)
+	case "kbt":
+		tgmanager.SendMsg(tgMsg)
+		korbit.Run(exchange)
 	}
 }
