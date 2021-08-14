@@ -18,6 +18,7 @@ const (
 	conEndPoint string = "public-ws-api.coinone.co.kr"
 	binEndPoint string = "stream.binance.com:9443"
 	kbtEndPoint string = "ws.korbit.co.kr"
+	hbkEndPoint string = "api-cloud.huobi.co.kr"
 )
 
 func GetConn(exchange string) (*websocket.Conn, error) {
@@ -35,6 +36,9 @@ func GetConn(exchange string) (*websocket.Conn, error) {
 	case "kbt":
 		host = kbtEndPoint
 		path = "/v1/user/push"
+	case "hbk":
+		host = hbkEndPoint
+		path = "/ws"
 	}
 
 	u := url.URL{Scheme: "wss", Host: host, Path: path}

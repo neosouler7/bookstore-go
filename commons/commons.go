@@ -89,3 +89,10 @@ func GetObTargetPrice(volume string, orderbook interface{}) (string, error) {
 	}
 	return obSlice[len(obSlice)-1].([2]string)[0], nil
 }
+
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

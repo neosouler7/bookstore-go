@@ -6,6 +6,7 @@ import (
 	"log"
 	"neosouler7/bookstore-go/binance"
 	"neosouler7/bookstore-go/coinone"
+	"neosouler7/bookstore-go/huobikorea"
 	"neosouler7/bookstore-go/korbit"
 	"neosouler7/bookstore-go/tgmanager"
 	"neosouler7/bookstore-go/upbit"
@@ -41,5 +42,8 @@ func main() {
 	case "kbt":
 		tgmanager.SendMsg(tgMsg)
 		korbit.Run(exchange)
+	case "hbk":
+		tgmanager.SendMsg(tgMsg)
+		huobikorea.Run(exchange)
 	}
 }

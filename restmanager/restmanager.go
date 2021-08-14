@@ -14,6 +14,7 @@ const (
 	conEndPoint string = "https://api.coinone.co.kr"
 	binEndPoint string = "https://api.binance.com"
 	kbtEndPoint string = "https://api.korbit.co.kr"
+	hbkEndPoint string = "https://api-cloud.huobi.co.kr"
 )
 
 func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
@@ -37,6 +38,9 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	case "kbt":
 		endPoint = kbtEndPoint + "/v1/orderbook"
 		queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
+	case "hbk":
+		endPoint = hbkEndPoint + "/market/depth"
+		queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
 	}
 
 	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
@@ -95,6 +99,13 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 		// add market, symbol since no value on return
 		rJson.(map[string]interface{})["market"] = market
 		rJson.(map[string]interface{})["symbol"] = symbol
+		c <- rJson.(map[string]interface{})
+	case "hbk":
+		var rJson interface{}
+		err = json.Unmarshal(body, &rJson)
+		if err != nil {
+			log.Fatalln(err)
+		}
 		c <- rJson.(map[string]interface{})
 	}
 }
