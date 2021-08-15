@@ -3,6 +3,7 @@ package commons
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -95,4 +96,11 @@ func Min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// get err as returned error, and log with specific errMsg
+func HandleErr(err error, errMsg error) {
+	if err != nil {
+		log.Fatalln(errMsg)
+	}
 }

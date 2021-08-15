@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"neosouler7/bookstore-go/binance"
 	"neosouler7/bookstore-go/coinone"
 	"neosouler7/bookstore-go/huobikorea"
@@ -37,7 +36,7 @@ func main() {
 	tgMsg := fmt.Sprintf("[bookstore-go] %s\n", *exchange)
 	switch *exchange {
 	default:
-		log.Fatalln(errExchangeNotFound)
+		usage()
 	case "upb":
 		tgmanager.SendMsg(tgMsg)
 		upbit.Run(*exchange)

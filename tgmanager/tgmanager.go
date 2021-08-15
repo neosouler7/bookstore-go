@@ -3,7 +3,6 @@ package tgmanager
 import (
 	"errors"
 	"fmt"
-	"log"
 	"neosouler7/bookstore-go/commons"
 	"time"
 
@@ -14,14 +13,13 @@ var (
 	token         = commons.ReadConfig("Tg").(map[string]interface{})["token"].(string)
 	chat_ids      = commons.ReadConfig("Tg").(map[string]interface{})["chat_ids"].([]interface{})
 	errGetBot     = errors.New("[ERROR] error on init tgBot")
+	errSendMsg    = errors.New("[ERROR] error on sendMsg")
 	errGetUpdates = errors.New("[ERROR] error on get updates")
 )
 
 func getBot() (*tgbotapi.BotAPI, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		log.Fatalln(errGetBot)
-	}
+	commons.HandleErr(err, errGetBot)
 
 	bot.Debug = true
 
@@ -36,9 +34,7 @@ func SendMsg(tgMsg string) {
 	for _, chat_id := range chat_ids {
 		msg := tgbotapi.NewMessage(int64(chat_id.(float64)), tgMsg)
 		_, err := bot.Send(msg)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, errSendMsg)
 	}
 }
 
@@ -49,9 +45,8 @@ func GetUpdates() {
 	u.Timeout = 60
 
 	updateChannel, err := bot.GetUpdatesChan(u)
-	if err != nil {
-		log.Fatalln(errGetUpdates)
-	}
+	commons.HandleErr(err, errGetUpdates)
+
 	for update := range updateChannel {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue

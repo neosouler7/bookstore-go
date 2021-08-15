@@ -2,11 +2,17 @@ package restmanager
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
+	"neosouler7/bookstore-go/commons"
 	"strings"
 
 	"github.com/valyala/fasthttp"
+)
+
+var (
+	errHttpRequest = errors.New("[ERROR] http request")
+	errUnmarshal   = errors.New("[ERROR] unmarshaling")
 )
 
 const (
@@ -24,8 +30,6 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	var endPoint, queryString string
 
 	switch exchange {
-	default:
-		fmt.Println("proper exchange needed on FastHttpRequest")
 	case "upb":
 		endPoint = upbEndPoint + "/v1/orderbook"
 		queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
@@ -55,37 +59,27 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 
 	client := &fasthttp.Client{}
 	err := client.Do(req, res)
-	if err != nil {
-		fmt.Println(req)
-		fmt.Println(res)
-		log.Fatal(err)
-	}
-	if len(res.Body()) == 0 {
-		log.Fatal("missing request body")
-	}
+	commons.HandleErr(err, errHttpRequest)
 
 	body := res.Body()
 	switch exchange {
 	case "upb":
 		var rJson []interface{}
 		err = json.Unmarshal(body, &rJson)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, errUnmarshal)
+
 		c <- rJson[0].(map[string]interface{})
 	case "con":
 		var rJson interface{}
 		err = json.Unmarshal(body, &rJson)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, errUnmarshal)
+
 		c <- rJson.(map[string]interface{})
 	case "bin":
 		var rJson interface{}
 		err = json.Unmarshal(body, &rJson)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, errUnmarshal)
+
 		// add market, symbol since no value on return
 		rJson.(map[string]interface{})["market"] = market
 		rJson.(map[string]interface{})["symbol"] = symbol
@@ -93,9 +87,8 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	case "kbt":
 		var rJson interface{}
 		err = json.Unmarshal(body, &rJson)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, errUnmarshal)
+
 		// add market, symbol since no value on return
 		rJson.(map[string]interface{})["market"] = market
 		rJson.(map[string]interface{})["symbol"] = symbol
@@ -103,9 +96,8 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	case "hbk":
 		var rJson interface{}
 		err = json.Unmarshal(body, &rJson)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, errUnmarshal)
+
 		c <- rJson.(map[string]interface{})
 	}
 }

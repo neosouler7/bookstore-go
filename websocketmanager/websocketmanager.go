@@ -2,15 +2,15 @@ package websocketmanager
 
 import (
 	"errors"
-	"log"
+	"neosouler7/bookstore-go/commons"
 	"net/url"
 
 	"github.com/gorilla/websocket"
 )
 
 var (
-	errGetWsConn = errors.New("[ERROR] connecting ws")
-	errSendWsMsg = errors.New("[ERROR] sending msg on ws")
+	errGetConn = errors.New("[ERROR] connecting ws")
+	errSendMsg = errors.New("[ERROR] sending msg on ws")
 )
 
 const (
@@ -43,19 +43,13 @@ func GetConn(exchange string) (*websocket.Conn, error) {
 
 	u := url.URL{Scheme: "wss", Host: host, Path: path}
 	wsConn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		return nil, errGetWsConn
-	}
-	// defer wsConn.Close()
+	commons.HandleErr(err, errGetConn)
 
 	return wsConn, nil
 }
 
 func SendMsg(wsConn *websocket.Conn, msg string) error {
 	err := wsConn.WriteMessage(websocket.TextMessage, []byte(msg))
-	if err != nil {
-		log.Fatalln(errSendWsMsg)
-		return errSendWsMsg
-	}
+	commons.HandleErr(err, errSendMsg)
 	return nil
 }

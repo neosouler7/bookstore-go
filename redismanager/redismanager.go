@@ -30,9 +30,7 @@ func init() {
 	})
 
 	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Fatalln(errInitRedisClient)
-	}
+	commons.HandleErr(err, errInitRedisClient)
 }
 
 // func GetRedisPipeline() redis.Pipeliner {
@@ -79,9 +77,8 @@ func SetOrderbook(api string, ob orderbook) error {
 	prev, _ := rdb.Get(ctx, key).Result()
 	if prev == "" { // if no ob stored,
 		err := rdb.Set(ctx, key, value, 0).Err()
-		if err != nil {
-			log.Fatalln(errSetRedis)
-		}
+		commons.HandleErr(err, errSetRedis)
+
 		logger.SetPrefix("DEBUG: ")
 		logger.Printf("set %s redis since init!\n", key)
 	}
@@ -92,9 +89,8 @@ func SetOrderbook(api string, ob orderbook) error {
 
 	if newTs > prevTs {
 		err := rdb.Set(ctx, key, value, 0).Err()
-		if err != nil {
-			log.Fatalln(errSetRedis)
-		}
+		commons.HandleErr(err, errSetRedis)
+
 		timeGap := newTs - prevTs
 		logger.Printf("Set %s %s %4dms\n", api, key, timeGap)
 	} else {
