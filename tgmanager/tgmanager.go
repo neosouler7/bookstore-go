@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"neosouler7/bookstore-go/commons"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -17,34 +18,38 @@ var (
 	errGetUpdates = errors.New("[ERROR] error on get updates")
 )
 
-func getBot() (*tgbotapi.BotAPI, error) {
-	bot, err := tgbotapi.NewBotAPI(token)
-	commons.HandleErr(err, errGetBot)
+var t *tgbotapi.BotAPI
+var once sync.Once
 
-	bot.Debug = true
-
-	return bot, err
+func tgBot() *tgbotapi.BotAPI {
+	if t == nil {
+		once.Do(func() {
+			tgPointer, err := tgbotapi.NewBotAPI(token)
+			commons.HandleErr(err, errGetBot)
+			t = tgPointer
+			t.Debug = true
+		})
+	}
+	return t
 }
 
 func SendMsg(tgMsg string) {
-	bot, _ := getBot()
 	currentTime := time.Now().Format("2006-01-02 15:04:05.123456")
 	tgMsg = fmt.Sprintf("%s \n%s", tgMsg, currentTime)
 
 	for _, chat_id := range chat_ids {
 		msg := tgbotapi.NewMessage(int64(chat_id.(float64)), tgMsg)
-		_, err := bot.Send(msg)
+		_, err := tgBot().Send(msg)
 		commons.HandleErr(err, errSendMsg)
 	}
 }
 
 // when need to get chatId
 func GetUpdates() {
-	bot, _ := getBot()
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updateChannel, err := bot.GetUpdatesChan(u)
+	updateChannel, err := tgBot().GetUpdatesChan(u)
 	commons.HandleErr(err, errGetUpdates)
 
 	for update := range updateChannel {
