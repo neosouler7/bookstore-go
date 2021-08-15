@@ -48,7 +48,7 @@ func subscribeWs(pairs interface{}) {
 	fmt.Println("CON websocket subscribe msg sent!")
 }
 
-func conReceiveWs() {
+func receiveWs() {
 	for {
 		_, message, err := websocketmanager.GetConn(ex).ReadMessage()
 		if err != nil {
@@ -132,7 +132,7 @@ func Run(exchange string) {
 
 	// [receive websocket msg]
 	wg.Add(1)
-	go conReceiveWs()
+	go receiveWs()
 
 	// [rest]
 	wg.Add(1)
