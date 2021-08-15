@@ -10,19 +10,19 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
-var ()
+var (
+	ex string
+)
 
 const latencyAllowed float64 = 20.0 // per 1 second
 
-// func pingWs(wsConn *websocket.Conn) {
+// func pingWs() {
 
 // }
 
-func subscribeWs(wsConn *websocket.Conn, pairs interface{}) {
+func subscribeWs(pairs interface{}) {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
 	for _, pair := range pairs.([]interface{}) {
@@ -35,16 +35,16 @@ func subscribeWs(wsConn *websocket.Conn, pairs interface{}) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("{\"method\": \"SUBSCRIBE\",\"params\": [%s],\"id\": %d}", streams, time.Now().UnixNano()/100000)
 
-	err := websocketmanager.SendMsg(wsConn, msg)
+	err := websocketmanager.SendMsg(ex, msg)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	fmt.Println("BIN websocket subscribe msg sent!")
 }
 
-func receiveWs(wsConn *websocket.Conn, exchange string) {
+func receiveWs() {
 	for {
-		_, message, err := wsConn.ReadMessage()
+		_, message, err := websocketmanager.GetConn(ex).ReadMessage()
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -58,7 +58,7 @@ func receiveWs(wsConn *websocket.Conn, exchange string) {
 				log.Fatalln(err)
 			}
 
-			err := SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+			err := SetOrderbook("W", ex, rJson.(map[string]interface{}))
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -67,18 +67,18 @@ func receiveWs(wsConn *websocket.Conn, exchange string) {
 	}
 }
 
-func rest(exchange string, pairs interface{}) {
+func rest(pairs interface{}) {
 	c := make(chan map[string]interface{})
 
 	for {
 		for _, pair := range pairs.([]interface{}) {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair.(string))
+			go restmanager.FastHttpRequest(c, ex, "GET", pair.(string))
 		}
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
 
-			err := SetOrderbook("R", exchange, rJson)
+			err := SetOrderbook("R", ex, rJson)
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -93,11 +93,8 @@ func rest(exchange string, pairs interface{}) {
 }
 
 func Run(exchange string) {
+	ex = exchange
 	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
-	wsConn, err := websocketmanager.GetConn(exchange)
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	var wg sync.WaitGroup
 
@@ -108,17 +105,17 @@ func Run(exchange string) {
 	// [subscribe websocket stream]
 	wg.Add(1)
 	go func() {
-		subscribeWs(wsConn, pairs)
+		subscribeWs(pairs)
 		wg.Done()
 	}()
 
 	// [receive websocket msg]
 	wg.Add(1)
-	go receiveWs(wsConn, exchange)
+	go receiveWs()
 
 	// [rest]
 	wg.Add(1)
-	go rest(exchange, pairs)
+	go rest(pairs)
 
 	wg.Wait()
 }

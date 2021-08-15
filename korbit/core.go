@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 const latencyAllowed float64 = 12.0 // per 1 second
+
+var ex string
 
 // func pingWs(wsConn *websocket.Conn) {
 // 	msg := "PING"
@@ -27,7 +27,7 @@ const latencyAllowed float64 = 12.0 // per 1 second
 // 	}
 // }
 
-func subscribeWs(wsConn *websocket.Conn, pairs interface{}) {
+func subscribeWs(pairs interface{}) {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
 	for _, pair := range pairs.([]interface{}) {
@@ -42,22 +42,22 @@ func subscribeWs(wsConn *websocket.Conn, pairs interface{}) {
 	streams := fmt.Sprintf("\"orderbook:%s\"", strings.Join(streamSlice, ","))
 	msg := fmt.Sprintf("{\"accessToken\": \"null\", \"timestamp\": \"%d\", \"event\": \"korbit:subscribe\", \"data\": {\"channels\": [%s]}}", ts, streams)
 
-	err := websocketmanager.SendMsg(wsConn, msg)
+	err := websocketmanager.SendMsg(ex, msg)
 	fmt.Println("KBT websocket subscribe msg sent!")
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func receiveWs(wsConn *websocket.Conn, exchange string, pairs interface{}) {
+func receiveWs(pairs interface{}) {
 	for {
-		_, message, err := wsConn.ReadMessage()
+		_, message, err := websocketmanager.GetConn(ex).ReadMessage()
 		if err != nil {
 			log.Fatalln(err)
 		}
 
 		if strings.Contains(string(message), "connected") {
-			subscribeWs(wsConn, pairs) // just once
+			subscribeWs(pairs) // just once
 		} else if strings.Contains(string(message), "subscribe") {
 			continue
 		} else if strings.Contains(string(message), "push-orderbook") {
@@ -67,7 +67,7 @@ func receiveWs(wsConn *websocket.Conn, exchange string, pairs interface{}) {
 				log.Fatalln(err)
 			}
 
-			err := SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+			err := SetOrderbook("W", ex, rJson.(map[string]interface{}))
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -77,18 +77,18 @@ func receiveWs(wsConn *websocket.Conn, exchange string, pairs interface{}) {
 	}
 }
 
-func rest(exchange string, pairs interface{}) {
+func rest(pairs interface{}) {
 	c := make(chan map[string]interface{})
 
 	for {
 		for _, pair := range pairs.([]interface{}) {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair.(string))
+			go restmanager.FastHttpRequest(c, ex, "GET", pair.(string))
 		}
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
 
-			err := SetOrderbook("R", exchange, rJson)
+			err := SetOrderbook("R", ex, rJson)
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -103,17 +103,8 @@ func rest(exchange string, pairs interface{}) {
 }
 
 func Run(exchange string) {
+	ex = exchange
 	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
-
-	// [get websocket connection]
-	wsConn, err := websocketmanager.GetConn(exchange)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// // [execute pipeline]
-	// // not sure of using pipeline ...
-	// // go upbExecPipeline(exchange)
 
 	var wg sync.WaitGroup
 
@@ -131,11 +122,11 @@ func Run(exchange string) {
 
 	// [receive websocket msg]
 	wg.Add(1)
-	go receiveWs(wsConn, exchange, pairs)
+	go receiveWs(pairs)
 
 	// [rest]
 	wg.Add(1)
-	go rest(exchange, pairs)
+	go rest(pairs)
 
 	wg.Wait()
 }

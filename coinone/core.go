@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 const LATENCY_ALLOWED float64 = 5.0 // per 1 second
@@ -20,23 +18,13 @@ const LATENCY_ALLOWED float64 = 5.0 // per 1 second
 var (
 	errResponseEncoding = errors.New("[ERROR] response encoding")
 	errWSRequest        = errors.New("[ERROR] ws request")
+	ex                  string
 )
 
-// set redis pipeline global
-// var pipe = redisManager.GetRedisPipeline()
-
-// func upbExecPipeline(exchange string) {
-// 	for {
-// 		redisManager.ExecPipeline(exchange, &pipe)
-// 		time.Sleep(time.Second * 1)
-// 		fmt.Println("UPB execute pipeline")
-// 	}
-// }
-
-func pingWs(wsConn *websocket.Conn) {
+func pingWs() {
 	msg := "{\"requestType\": \"PING\"}"
 	for {
-		err := websocketmanager.SendMsg(wsConn, msg)
+		err := websocketmanager.SendMsg(ex, msg)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -44,7 +32,7 @@ func pingWs(wsConn *websocket.Conn) {
 	}
 }
 
-func subscribeWs(wsConn *websocket.Conn, pairs interface{}) {
+func subscribeWs(pairs interface{}) {
 	time.Sleep(time.Second * 1)
 	for _, pair := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(pair.(string), ":")
@@ -52,7 +40,7 @@ func subscribeWs(wsConn *websocket.Conn, pairs interface{}) {
 		var symbol = strings.ToUpper(pairInfo[1])
 
 		msg := "{\"requestType\": \"SUBSCRIBE\", \"body\": {\"channel\": \"ORDERBOOK\", \"topic\": {\"priceCurrency\": \"" + strings.ToUpper(market) + "\", \"productCurrency\": \"" + strings.ToUpper(symbol) + "\", \"group\": \"EXPANDED\", \"size\": 30}}}"
-		err := websocketmanager.SendMsg(wsConn, msg)
+		err := websocketmanager.SendMsg(ex, msg)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -60,9 +48,9 @@ func subscribeWs(wsConn *websocket.Conn, pairs interface{}) {
 	fmt.Println("CON websocket subscribe msg sent!")
 }
 
-func conReceiveWs(wsConn *websocket.Conn, exchange string) {
+func conReceiveWs() {
 	for {
-		_, message, err := wsConn.ReadMessage()
+		_, message, err := websocketmanager.GetConn(ex).ReadMessage()
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -91,7 +79,7 @@ func conReceiveWs(wsConn *websocket.Conn, exchange string) {
 		case "SUBSCRIBED":
 			fmt.Println("coinone ws SUBSCRIBED")
 		case "DATA":
-			err := SetOrderbook("W", exchange, rJson)
+			err := SetOrderbook("W", ex, rJson)
 			if err != nil {
 				log.Fatalln(errSetOrderbook)
 			}
@@ -99,18 +87,18 @@ func conReceiveWs(wsConn *websocket.Conn, exchange string) {
 	}
 }
 
-func rest(exchange string, pairs interface{}) {
+func rest(pairs interface{}) {
 	c := make(chan map[string]interface{})
 
 	for {
 		for _, pair := range pairs.([]interface{}) {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair.(string))
+			go restmanager.FastHttpRequest(c, ex, "GET", pair.(string))
 		}
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
 
-			err := SetOrderbook("R", exchange, rJson)
+			err := SetOrderbook("R", ex, rJson)
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -126,38 +114,29 @@ func rest(exchange string, pairs interface{}) {
 }
 
 func Run(exchange string) {
+	ex = exchange
 	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
-
-	// [get websocket connection]
-	wsConn, err := websocketmanager.GetConn(exchange)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// [execute pipeline]
-	// not sure of using pipeline ...
-	// go upbExecPipeline(exchange)
 
 	var wg sync.WaitGroup
 
 	// [ping]
 	wg.Add(1)
-	go pingWs(wsConn)
+	go pingWs()
 
 	// [subscribe websocket stream]
 	wg.Add(1)
 	go func() {
-		subscribeWs(wsConn, pairs)
+		subscribeWs(pairs)
 		wg.Done()
 	}()
 
 	// [receive websocket msg]
 	wg.Add(1)
-	go conReceiveWs(wsConn, exchange)
+	go conReceiveWs()
 
 	// [rest]
 	wg.Add(1)
-	go rest(exchange, pairs)
+	go rest(pairs)
 
 	wg.Wait()
 }

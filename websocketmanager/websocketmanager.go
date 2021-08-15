@@ -21,7 +21,9 @@ const (
 	hbkEndPoint string = "api-cloud.huobi.co.kr"
 )
 
-func GetConn(exchange string) (*websocket.Conn, error) {
+var w *websocket.Conn
+
+func getHostPath(exchange string) (string, string) {
 	var host, path string
 	switch exchange {
 	case "upb":
@@ -40,16 +42,22 @@ func GetConn(exchange string) (*websocket.Conn, error) {
 		host = hbkEndPoint
 		path = "/ws"
 	}
-
-	u := url.URL{Scheme: "wss", Host: host, Path: path}
-	wsConn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	commons.HandleErr(err, errGetConn)
-
-	return wsConn, nil
+	return host, path
 }
 
-func SendMsg(wsConn *websocket.Conn, msg string) error {
-	err := wsConn.WriteMessage(websocket.TextMessage, []byte(msg))
+func GetConn(exchange string) *websocket.Conn {
+	if w == nil {
+		host, path := getHostPath(exchange)
+		u := url.URL{Scheme: "wss", Host: host, Path: path}
+		wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		commons.HandleErr(err, errGetConn)
+		w = wPointer
+	}
+	return w
+}
+
+func SendMsg(exchange string, msg string) error {
+	err := GetConn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
 	commons.HandleErr(err, errSendMsg)
 	return nil
 }
