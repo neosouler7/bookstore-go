@@ -1,30 +1,21 @@
 package coinone
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"neosouler7/bookstore-go/commons"
 	"neosouler7/bookstore-go/redismanager"
 	"strings"
 )
 
-var (
-	errGetObTargetPrice = errors.New("[ERROR] getting ob target price")
-	errSetOrderbook     = errors.New("[ERROR] setting ob")
-)
-
-func SetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
+func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	// con differs "market-symbol" receive form by api type
-	var targetVolumeMap = commons.GetTargetVolumeMap(exchange)
-	var market, symbol, targetVolume, ts string
+	var market, symbol, ts string
 	var askResponse, bidResponse []interface{}
 	var askSlice, bidSlice []interface{}
 	switch api {
 	case "R":
 		market = "krw"
 		symbol = rJson["currency"].(string)
-		targetVolume = targetVolumeMap[market+":"+symbol]
 
 		tsString := rJson["timestamp"].(string)
 		ts = commons.FormatTs(tsString)
@@ -35,7 +26,6 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 		rTopic := rJson["topic"].(map[string]interface{})
 		market = strings.ToLower(rTopic["priceCurrency"].(string))
 		symbol = strings.ToLower(rTopic["productCurrency"].(string))
-		targetVolume = targetVolumeMap[market+":"+symbol]
 
 		rData := rJson["data"]
 		tsFloat := int(rData.(map[string]interface{})["timestamp"].(float64))
@@ -56,22 +46,13 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 		}
 	}
 
-	askPrice, err := commons.GetObTargetPrice(targetVolume, askSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-	bidPrice, err := commons.GetObTargetPrice(targetVolume, bidSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-
-	ob := redismanager.NewOrderbook(exchange, strings.ToLower(market), strings.ToLower(symbol), askPrice, bidPrice, ts)
-	err = redismanager.SetOrderbook(api, *ob)
-	if err != nil {
-		log.Fatalln(errSetOrderbook)
-		return err
-	}
-	return nil
+	redismanager.PreHandleOrderbook(
+		api,
+		exchange,
+		market,
+		symbol,
+		askSlice,
+		bidSlice,
+		ts,
+	)
 }

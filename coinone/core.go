@@ -79,10 +79,7 @@ func receiveWs() {
 		case "SUBSCRIBED":
 			fmt.Println("coinone ws SUBSCRIBED")
 		case "DATA":
-			err := SetOrderbook("W", ex, rJson)
-			if err != nil {
-				log.Fatalln(errSetOrderbook)
-			}
+			SetOrderbook("W", ex, rJson)
 		}
 	}
 }
@@ -98,10 +95,7 @@ func rest(pairs interface{}) {
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
 
-			err := SetOrderbook("R", ex, rJson)
-			if err != nil {
-				log.Fatalln(err)
-			}
+			SetOrderbook("R", ex, rJson)
 		}
 
 		// 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함

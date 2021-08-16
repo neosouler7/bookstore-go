@@ -1,20 +1,13 @@
 package korbit
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"neosouler7/bookstore-go/commons"
 	"neosouler7/bookstore-go/redismanager"
 	"strings"
 )
 
-var (
-	errGetObTargetPrice = errors.New("[ERROR] getting ob target price")
-	errSetOrderbook     = errors.New("[ERROR] setting ob")
-)
-
-func SetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
+func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	var market, symbol, ts string
 
 	switch api {
@@ -27,9 +20,6 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 		symbol = strings.Split(rJson["data"].(map[string]interface{})["currency_pair"].(string), "_")[0]
 		ts = commons.FormatTs(fmt.Sprintf("%f", rJson["data"].(map[string]interface{})["timestamp"].(float64)))
 	}
-
-	var targetVolumeMap = commons.GetTargetVolumeMap(exchange)
-	var targetVolume = targetVolumeMap[market+":"+symbol]
 
 	var askResponse, bidResponse []interface{}
 	var askSlice, bidSlice []interface{}
@@ -66,22 +56,13 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 		}
 	}
 
-	askPrice, err := commons.GetObTargetPrice(targetVolume, askSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-	bidPrice, err := commons.GetObTargetPrice(targetVolume, bidSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-
-	ob := redismanager.NewOrderbook(exchange, strings.ToLower(market), strings.ToLower(symbol), askPrice, bidPrice, ts)
-	err = redismanager.SetOrderbook(api, *ob)
-	if err != nil {
-		log.Fatalln(errSetOrderbook)
-		return err
-	}
-	return nil
+	redismanager.PreHandleOrderbook(
+		api,
+		exchange,
+		market,
+		symbol,
+		askSlice,
+		bidSlice,
+		ts,
+	)
 }

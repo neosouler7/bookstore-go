@@ -1,18 +1,11 @@
 package binance
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"neosouler7/bookstore-go/commons"
 	"neosouler7/bookstore-go/redismanager"
 	"strings"
 	"time"
-)
-
-var (
-	errGetObTargetPrice = errors.New("[ERROR] getting ob target price")
-	errSetOrderbook     = errors.New("[ERROR] setting ob")
 )
 
 func getPairInterface(exchange string) map[string]interface{} {
@@ -30,7 +23,7 @@ func getPairInterface(exchange string) map[string]interface{} {
 	return pairInterface
 }
 
-func SetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
+func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	var pair, market, symbol string
 
 	switch api {
@@ -43,9 +36,6 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 		market = pairInterface[pair].(map[string]string)["market"]
 		symbol = pairInterface[pair].(map[string]string)["symbol"]
 	}
-
-	var targetVolumeMap = commons.GetTargetVolumeMap(exchange)
-	var targetVolume = targetVolumeMap[market+":"+symbol]
 
 	ts := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
 
@@ -73,22 +63,13 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 		}
 	}
 
-	askPrice, err := commons.GetObTargetPrice(targetVolume, askSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-	bidPrice, err := commons.GetObTargetPrice(targetVolume, bidSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-
-	ob := redismanager.NewOrderbook(exchange, strings.ToLower(market), strings.ToLower(symbol), askPrice, bidPrice, ts)
-	err = redismanager.SetOrderbook(api, *ob)
-	if err != nil {
-		log.Fatalln(errSetOrderbook)
-		return err
-	}
-	return nil
+	redismanager.PreHandleOrderbook(
+		api,
+		exchange,
+		market,
+		symbol,
+		askSlice,
+		bidSlice,
+		ts,
+	)
 }

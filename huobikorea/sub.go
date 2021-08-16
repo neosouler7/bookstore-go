@@ -1,17 +1,10 @@
 package huobikorea
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"neosouler7/bookstore-go/commons"
 	"neosouler7/bookstore-go/redismanager"
 	"strings"
-)
-
-var (
-	errGetObTargetPrice = errors.New("[ERROR] getting ob target price")
-	errSetOrderbook     = errors.New("[ERROR] setting ob")
 )
 
 func getPairInterface(exchange string) map[string]interface{} {
@@ -29,7 +22,7 @@ func getPairInterface(exchange string) map[string]interface{} {
 	return pairInterface
 }
 
-func SetOrderbook(api string, exchange string, rJson map[string]interface{}) error {
+func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	var pair, market, symbol, ts string
 	var pairInterface = getPairInterface(exchange)
 
@@ -37,9 +30,6 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 	market = pairInterface[pair].(map[string]string)["market"]
 	symbol = pairInterface[pair].(map[string]string)["symbol"]
 	ts = commons.FormatTs(fmt.Sprintf("%f", rJson["ts"].(float64)))
-
-	var targetVolumeMap = commons.GetTargetVolumeMap(exchange)
-	var targetVolume = targetVolumeMap[market+":"+symbol]
 
 	var askResponse, bidResponse []interface{}
 	var askSlice, bidSlice []interface{}
@@ -58,22 +48,13 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) err
 		bidSlice = append(bidSlice, bid)
 	}
 
-	askPrice, err := commons.GetObTargetPrice(targetVolume, askSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-	bidPrice, err := commons.GetObTargetPrice(targetVolume, bidSlice)
-	if err != nil {
-		log.Fatalln(errGetObTargetPrice)
-		return err
-	}
-
-	ob := redismanager.NewOrderbook(exchange, strings.ToLower(market), strings.ToLower(symbol), askPrice, bidPrice, ts)
-	err = redismanager.SetOrderbook(api, *ob)
-	if err != nil {
-		log.Fatalln(errSetOrderbook)
-		return err
-	}
-	return nil
+	redismanager.PreHandleOrderbook(
+		api,
+		exchange,
+		market,
+		symbol,
+		askSlice,
+		bidSlice,
+		ts,
+	)
 }

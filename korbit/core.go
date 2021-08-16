@@ -67,10 +67,7 @@ func receiveWs(pairs interface{}) {
 				log.Fatalln(err)
 			}
 
-			err := SetOrderbook("W", ex, rJson.(map[string]interface{}))
-			if err != nil {
-				log.Fatalln(err)
-			}
+			SetOrderbook("W", ex, rJson.(map[string]interface{}))
 		} else {
 			log.Fatalln(string(message))
 		}
@@ -88,10 +85,7 @@ func rest(pairs interface{}) {
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
 
-			err := SetOrderbook("R", ex, rJson)
-			if err != nil {
-				log.Fatalln(err)
-			}
+			SetOrderbook("R", ex, rJson)
 		}
 
 		// 1번에 (1s / LATENCY_ALLOWD) = 0.1s 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
