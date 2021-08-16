@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ex string
+	exchange string
 )
 
 const latencyAllowed float64 = 20.0 // per 1 second
@@ -35,7 +35,7 @@ func subscribeWs(pairs interface{}) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("{\"method\": \"SUBSCRIBE\",\"params\": [%s],\"id\": %d}", streams, time.Now().UnixNano()/100000)
 
-	err := websocketmanager.SendMsg(ex, msg)
+	err := websocketmanager.SendMsg(exchange, msg)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -44,7 +44,7 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs() {
 	for {
-		_, message, err := websocketmanager.Conn(ex).ReadMessage()
+		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -58,7 +58,7 @@ func receiveWs() {
 				log.Fatalln(err)
 			}
 
-			SetOrderbook("W", ex, rJson.(map[string]interface{}))
+			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		}
 
 	}
@@ -69,13 +69,13 @@ func rest(pairs interface{}) {
 
 	for {
 		for _, pair := range pairs.([]interface{}) {
-			go restmanager.FastHttpRequest(c, ex, "GET", pair.(string))
+			go restmanager.FastHttpRequest(c, exchange, "GET", pair.(string))
 		}
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
 
-			SetOrderbook("R", ex, rJson)
+			SetOrderbook("R", exchange, rJson)
 		}
 
 		// 1번에 (1s / LATENCY_ALLOWD) = 0.1s 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
@@ -86,8 +86,8 @@ func rest(pairs interface{}) {
 	}
 }
 
-func Run(exchange string) {
-	ex = exchange
+func Run(e string) {
+	exchange = e
 	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
 
 	var wg sync.WaitGroup
@@ -96,18 +96,18 @@ func Run(exchange string) {
 	// wg.Add(1)
 	// go pingWs(wsConn)
 
-	// [subscribe websocket stream]
+	// subscribe websocket stream
 	wg.Add(1)
 	go func() {
 		subscribeWs(pairs)
 		wg.Done()
 	}()
 
-	// [receive websocket msg]
+	// receive websocket msg
 	wg.Add(1)
 	go receiveWs()
 
-	// [rest]
+	// rest
 	wg.Add(1)
 	go rest(pairs)
 

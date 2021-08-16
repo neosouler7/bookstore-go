@@ -14,7 +14,9 @@ import (
 
 const latencyAllowed float64 = 12.0 // per 1 second
 
-var ex string
+var (
+	exchange string
+)
 
 // func pingWs(wsConn *websocket.Conn) {
 // 	msg := "PING"
@@ -42,7 +44,7 @@ func subscribeWs(pairs interface{}) {
 	streams := fmt.Sprintf("\"orderbook:%s\"", strings.Join(streamSlice, ","))
 	msg := fmt.Sprintf("{\"accessToken\": \"null\", \"timestamp\": \"%d\", \"event\": \"korbit:subscribe\", \"data\": {\"channels\": [%s]}}", ts, streams)
 
-	err := websocketmanager.SendMsg(ex, msg)
+	err := websocketmanager.SendMsg(exchange, msg)
 	fmt.Println("KBT websocket subscribe msg sent!")
 	if err != nil {
 		log.Fatalln(err)
@@ -51,7 +53,7 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs(pairs interface{}) {
 	for {
-		_, message, err := websocketmanager.Conn(ex).ReadMessage()
+		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -67,7 +69,7 @@ func receiveWs(pairs interface{}) {
 				log.Fatalln(err)
 			}
 
-			SetOrderbook("W", ex, rJson.(map[string]interface{}))
+			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {
 			log.Fatalln(string(message))
 		}
@@ -79,13 +81,13 @@ func rest(pairs interface{}) {
 
 	for {
 		for _, pair := range pairs.([]interface{}) {
-			go restmanager.FastHttpRequest(c, ex, "GET", pair.(string))
+			go restmanager.FastHttpRequest(c, exchange, "GET", pair.(string))
 		}
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
 
-			SetOrderbook("R", ex, rJson)
+			SetOrderbook("R", exchange, rJson)
 		}
 
 		// 1번에 (1s / LATENCY_ALLOWD) = 0.1s 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
@@ -96,8 +98,8 @@ func rest(pairs interface{}) {
 	}
 }
 
-func Run(exchange string) {
-	ex = exchange
+func Run(e string) {
+	exchange = e
 	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
 
 	var wg sync.WaitGroup
@@ -114,11 +116,11 @@ func Run(exchange string) {
 	// 	wg.Done()
 	// }()
 
-	// [receive websocket msg]
+	// receive websocket msg
 	wg.Add(1)
 	go receiveWs(pairs)
 
-	// [rest]
+	// rest
 	wg.Add(1)
 	go rest(pairs)
 
