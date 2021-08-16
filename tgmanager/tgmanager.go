@@ -21,7 +21,7 @@ var (
 var t *tgbotapi.BotAPI
 var once sync.Once
 
-func tgBot() *tgbotapi.BotAPI {
+func Bot() *tgbotapi.BotAPI {
 	if t == nil {
 		once.Do(func() {
 			tgPointer, err := tgbotapi.NewBotAPI(token)
@@ -39,7 +39,7 @@ func SendMsg(tgMsg string) {
 
 	for _, chat_id := range chat_ids {
 		msg := tgbotapi.NewMessage(int64(chat_id.(float64)), tgMsg)
-		_, err := tgBot().Send(msg)
+		_, err := Bot().Send(msg)
 		commons.HandleErr(err, errSendMsg)
 	}
 }
@@ -49,7 +49,7 @@ func GetUpdates() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updateChannel, err := tgBot().GetUpdatesChan(u)
+	updateChannel, err := Bot().GetUpdatesChan(u)
 	commons.HandleErr(err, errGetUpdates)
 
 	for update := range updateChannel {

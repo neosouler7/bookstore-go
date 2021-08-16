@@ -51,7 +51,7 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs(pairs interface{}) {
 	for {
-		_, message, err := websocketmanager.GetConn(ex).ReadMessage()
+		_, message, err := websocketmanager.Conn(ex).ReadMessage()
 		if err != nil {
 			log.Fatalln(err)
 		}

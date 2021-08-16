@@ -45,7 +45,7 @@ func getHostPath(exchange string) (string, string) {
 	return host, path
 }
 
-func GetConn(exchange string) *websocket.Conn {
+func Conn(exchange string) *websocket.Conn {
 	if w == nil {
 		host, path := getHostPath(exchange)
 		u := url.URL{Scheme: "wss", Host: host, Path: path}
@@ -57,7 +57,7 @@ func GetConn(exchange string) *websocket.Conn {
 }
 
 func SendMsg(exchange string, msg string) error {
-	err := GetConn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
+	err := Conn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
 	commons.HandleErr(err, errSendMsg)
 	return nil
 }
