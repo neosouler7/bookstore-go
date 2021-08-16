@@ -36,12 +36,8 @@ func fastHttpClient() *fasthttp.Client {
 	return c
 }
 
-func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
-	var pairInfo = strings.Split(pair, ":")
-	var market = pairInfo[0]
-	var symbol = pairInfo[1]
+func getEndpointQuerystring(exchange string, market string, symbol string) (string, string) {
 	var endPoint, queryString string
-
 	switch exchange {
 	case "upb":
 		endPoint = upbEndPoint + "/v1/orderbook"
@@ -62,6 +58,14 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 		endPoint = bmbEndPoint + "/public/orderbook/"
 		queryString = fmt.Sprintf("%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
 	}
+	return endPoint, queryString
+}
+
+func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
+	var pairInfo = strings.Split(pair, ":")
+	var market = pairInfo[0]
+	var symbol = pairInfo[1]
+	endPoint, queryString := getEndpointQuerystring(exchange, market, symbol)
 
 	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 	defer func() {
