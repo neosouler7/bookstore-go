@@ -12,13 +12,14 @@
 - 바이낸스: bin (RESTful, Websocket)
 - 코빗: kbt (RESTful, Websocket)
 - 후오비코리아: hbk (RESTful, Websocket)
+- 빗썸: bmb (RESTful)
   > 코인원 Websocket의 경우 코인원 VIP 선정 되어야 사용 가능
 
 ## 실행 방법
 
-sample.json을 참고하여 데이터 저장을 위한 **Redis** 및 모니터링을 위한 **TelegramBot** 의 정보를 포함한 config.json 작성 후, 아래 명령어의 형태로 거래소 코드를 argument로 전달합니다.
+sample.json을 참고하여 데이터 저장을 위한 **Redis** 및 모니터링을 위한 **TelegramBot** 의 정보를 포함한 config.json 작성 후, 아래 cli의 형태로 main 함수를 실행합니다.
 
-> go run main.go **{exchangeCode}**
+> go run main.go -e=**{exchangeCode}**
 
 # 코드 설명
 
@@ -37,7 +38,7 @@ sample.json을 참고하여 데이터 저장을 위한 **Redis** 및 모니터�
 
 거래소별로는 주요 로직이 담겨 있는 core.go 와 부수적인 기능의 sub.go 로 구분 작성하였습니다.
 
-따라서, main.go 에서는 argument로 전달 받은 거래소의 core.go를 호출합니다.
+따라서, main.go 에서는 flag로 전달 받은 거래소의 core.go를 호출합니다.
 
 ## goroutine
 

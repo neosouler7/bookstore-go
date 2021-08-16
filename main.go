@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"neosouler7/bookstore-go/binance"
+	"neosouler7/bookstore-go/bithumb"
 	"neosouler7/bookstore-go/coinone"
 	"neosouler7/bookstore-go/huobikorea"
 	"neosouler7/bookstore-go/korbit"
@@ -52,5 +53,8 @@ func main() {
 	case "hbk":
 		tgmanager.SendMsg(tgMsg)
 		huobikorea.Run(*exchange)
+	case "bmb":
+		tgmanager.SendMsg(tgMsg)
+		bithumb.Run(*exchange)
 	}
 }

@@ -20,6 +20,7 @@ const (
 	binEndPoint string = "https://api.binance.com"
 	kbtEndPoint string = "https://api.korbit.co.kr"
 	hbkEndPoint string = "https://api-cloud.huobi.co.kr"
+	bmbEndPoint string = "https://api.bithumb.com"
 )
 
 var c *fasthttp.Client
@@ -57,6 +58,9 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	case "hbk":
 		endPoint = hbkEndPoint + "/market/depth"
 		queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
+	case "bmb":
+		endPoint = bmbEndPoint + "/public/orderbook/"
+		queryString = fmt.Sprintf("%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
 	}
 
 	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
@@ -105,5 +109,10 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 		commons.Bytes2Json(body, &rJson)
 
 		c <- rJson.(map[string]interface{})
+	case "bmb":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
 	}
 }
