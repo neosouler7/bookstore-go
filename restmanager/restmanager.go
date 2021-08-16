@@ -23,6 +23,16 @@ const (
 	hbkEndPoint string = "https://api-cloud.huobi.co.kr"
 )
 
+var c *fasthttp.Client
+
+func fastHttpClient() *fasthttp.Client {
+	if c == nil {
+		clientPointer := &fasthttp.Client{}
+		c = clientPointer
+	}
+	return c
+}
+
 func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
 	var pairInfo = strings.Split(pair, ":")
 	var market = pairInfo[0]
@@ -57,8 +67,7 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	req.SetRequestURI(endPoint)
 	req.URI().SetQueryString(queryString)
 
-	client := &fasthttp.Client{}
-	err := client.Do(req, res)
+	err := fastHttpClient().Do(req, res)
 	commons.HandleErr(err, errHttpRequest)
 
 	body := res.Body()
