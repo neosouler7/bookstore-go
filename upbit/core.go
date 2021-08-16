@@ -1,9 +1,7 @@
 package upbit
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"neosouler7/bookstore-go/commons"
 	"neosouler7/bookstore-go/restmanager"
 	"neosouler7/bookstore-go/websocketmanager"
@@ -47,18 +45,14 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs() {
 	for {
-		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
+		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
-		if strings.Contains(string(message), "status") {
+		if strings.Contains(string(msgBytes), "status") {
 			fmt.Println("PONG") // {"status":"UP"}
 		} else {
 			var rJson interface{}
-			err = json.Unmarshal(message, &rJson)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
+			commons.Bytes2Json(&rJson, msgBytes)
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		}
 	}
@@ -74,7 +68,6 @@ func rest(pairs interface{}) {
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
-
 			SetOrderbook("R", exchange, rJson)
 		}
 

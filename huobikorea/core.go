@@ -3,7 +3,6 @@ package huobikorea
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -42,10 +41,10 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs() {
 	for {
-		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
+		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
-		gzip, err := gzip.NewReader(bytes.NewReader(message))
+		gzip, err := gzip.NewReader(bytes.NewReader(msgBytes))
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -60,19 +59,13 @@ func receiveWs() {
 			continue
 		} else if strings.Contains(gzipMsg.String(), "ping") {
 			var rJson interface{}
-			err = json.Unmarshal([]byte(gzipMsg.String()), &rJson)
-			if err != nil {
-				log.Fatalln(err)
-			}
+			commons.Bytes2Json(&rJson, []byte(gzipMsg.String()))
+
 			pingTs := rJson.(map[string]interface{})["ping"]
 			pingWs(pingTs)
-
 		} else if strings.Contains(gzipMsg.String(), "tick") {
 			var rJson interface{}
-			err = json.Unmarshal([]byte(gzipMsg.String()), &rJson)
-			if err != nil {
-				log.Fatalln(err)
-			}
+			commons.Bytes2Json(&rJson, []byte(gzipMsg.String()))
 
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {
@@ -91,7 +84,6 @@ func rest(pairs interface{}) {
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
-
 			SetOrderbook("R", exchange, rJson)
 		}
 

@@ -1,7 +1,6 @@
 package korbit
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"neosouler7/bookstore-go/commons"
@@ -50,23 +49,19 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs(pairs interface{}) {
 	for {
-		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
+		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
-		if strings.Contains(string(message), "connected") {
+		if strings.Contains(string(msgBytes), "connected") {
 			subscribeWs(pairs) // just once
-		} else if strings.Contains(string(message), "subscribe") {
+		} else if strings.Contains(string(msgBytes), "subscribe") {
 			continue
-		} else if strings.Contains(string(message), "push-orderbook") {
+		} else if strings.Contains(string(msgBytes), "push-orderbook") {
 			var rJson interface{}
-			err = json.Unmarshal(message, &rJson)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
+			commons.Bytes2Json(&rJson, msgBytes)
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {
-			log.Fatalln(string(message))
+			log.Fatalln(string(msgBytes))
 		}
 	}
 }
@@ -81,7 +76,6 @@ func rest(pairs interface{}) {
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
-
 			SetOrderbook("R", exchange, rJson)
 		}
 

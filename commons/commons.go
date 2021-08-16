@@ -1,13 +1,20 @@
 package commons
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
+)
+
+var (
+	errDecode = errors.New("[ERROR] decoding")
+	errEncode = errors.New("[ERROR] encoding")
 )
 
 type config struct {
@@ -103,4 +110,10 @@ func HandleErr(err error, errMsg error) {
 	if err != nil {
 		log.Fatalln(errMsg)
 	}
+}
+
+func Bytes2Json(i interface{}, data []byte) {
+	r := bytes.NewReader(data)
+	err := json.NewDecoder(r).Decode(i)
+	HandleErr(err, errDecode)
 }

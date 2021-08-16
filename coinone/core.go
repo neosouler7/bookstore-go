@@ -1,7 +1,6 @@
 package coinone
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -44,14 +43,11 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs() {
 	for {
-		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
+		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		var data interface{}
-		err = json.Unmarshal(message, &data)
-		if err != nil {
-			log.Fatalln(errResponseEncoding)
-		}
+		commons.Bytes2Json(&data, msgBytes)
 
 		rJson := data.(map[string]interface{})
 		responseType := rJson["responseType"]
@@ -86,7 +82,6 @@ func rest(pairs interface{}) {
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
-
 			SetOrderbook("R", exchange, rJson)
 		}
 
