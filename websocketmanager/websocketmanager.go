@@ -4,6 +4,7 @@ import (
 	"errors"
 	"neosouler7/bookstore-go/commons"
 	"net/url"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -22,6 +23,7 @@ const (
 )
 
 var w *websocket.Conn
+var once sync.Once
 
 func getHostPath(exchange string) (string, string) {
 	var host, path string
@@ -47,11 +49,13 @@ func getHostPath(exchange string) (string, string) {
 
 func Conn(exchange string) *websocket.Conn {
 	if w == nil {
-		host, path := getHostPath(exchange)
-		u := url.URL{Scheme: "wss", Host: host, Path: path}
-		wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		commons.HandleErr(err, errGetConn)
-		w = wPointer
+		once.Do(func() {
+			host, path := getHostPath(exchange)
+			u := url.URL{Scheme: "wss", Host: host, Path: path}
+			wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+			commons.HandleErr(err, errGetConn)
+			w = wPointer
+		})
 	}
 	return w
 }

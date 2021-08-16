@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"neosouler7/bookstore-go/commons"
 	"strings"
+	"sync"
 
 	"github.com/valyala/fasthttp"
 )
@@ -24,11 +25,14 @@ const (
 )
 
 var c *fasthttp.Client
+var once sync.Once
 
 func fastHttpClient() *fasthttp.Client {
 	if c == nil {
-		clientPointer := &fasthttp.Client{}
-		c = clientPointer
+		once.Do(func() {
+			clientPointer := &fasthttp.Client{}
+			c = clientPointer
+		})
 	}
 	return c
 }
