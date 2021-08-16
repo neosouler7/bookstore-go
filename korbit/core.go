@@ -58,7 +58,7 @@ func receiveWs(pairs interface{}) {
 			continue
 		} else if strings.Contains(string(msgBytes), "push-orderbook") {
 			var rJson interface{}
-			commons.Bytes2Json(&rJson, msgBytes)
+			commons.Bytes2Json(msgBytes, &rJson)
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {
 			log.Fatalln(string(msgBytes))

@@ -112,7 +112,7 @@ func HandleErr(err error, errMsg error) {
 	}
 }
 
-func Bytes2Json(i interface{}, data []byte) {
+func Bytes2Json(data []byte, i interface{}) {
 	r := bytes.NewReader(data)
 	err := json.NewDecoder(r).Decode(i)
 	HandleErr(err, errDecode)

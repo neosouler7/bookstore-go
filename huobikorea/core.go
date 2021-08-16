@@ -59,13 +59,13 @@ func receiveWs() {
 			continue
 		} else if strings.Contains(gzipMsg.String(), "ping") {
 			var rJson interface{}
-			commons.Bytes2Json(&rJson, []byte(gzipMsg.String()))
+			commons.Bytes2Json([]byte(gzipMsg.String()), &rJson)
 
 			pingTs := rJson.(map[string]interface{})["ping"]
 			pingWs(pingTs)
 		} else if strings.Contains(gzipMsg.String(), "tick") {
 			var rJson interface{}
-			commons.Bytes2Json(&rJson, []byte(gzipMsg.String()))
+			commons.Bytes2Json([]byte(gzipMsg.String()), &rJson)
 
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {

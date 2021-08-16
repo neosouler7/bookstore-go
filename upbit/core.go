@@ -52,7 +52,7 @@ func receiveWs() {
 			fmt.Println("PONG") // {"status":"UP"}
 		} else {
 			var rJson interface{}
-			commons.Bytes2Json(&rJson, msgBytes)
+			commons.Bytes2Json(msgBytes, &rJson)
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		}
 	}

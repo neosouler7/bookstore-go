@@ -46,7 +46,7 @@ func receiveWs() {
 			fmt.Printf("BIN ws pass : %s\n", string(msgBytes))
 		} else {
 			var rJson interface{}
-			commons.Bytes2Json(&rJson, msgBytes)
+			commons.Bytes2Json(msgBytes, &rJson)
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		}
 

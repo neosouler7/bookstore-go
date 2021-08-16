@@ -47,7 +47,7 @@ func receiveWs() {
 		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		var data interface{}
-		commons.Bytes2Json(&data, msgBytes)
+		commons.Bytes2Json(msgBytes, &data)
 
 		rJson := data.(map[string]interface{})
 		responseType := rJson["responseType"]
