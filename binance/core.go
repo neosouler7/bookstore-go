@@ -35,19 +35,14 @@ func subscribeWs(pairs interface{}) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("{\"method\": \"SUBSCRIBE\",\"params\": [%s],\"id\": %d}", streams, time.Now().UnixNano()/100000)
 
-	err := websocketmanager.SendMsg(exchange, msg)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	_ = websocketmanager.SendMsg(exchange, msg)
 	fmt.Println("BIN websocket subscribe msg sent!")
 }
 
 func receiveWs() {
 	for {
 		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		if strings.Contains(string(message), "result") {
 			fmt.Printf("BIN ws pass : %s\n", string(message))

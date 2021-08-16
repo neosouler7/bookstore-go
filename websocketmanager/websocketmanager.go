@@ -12,6 +12,7 @@ import (
 var (
 	errGetConn = errors.New("[ERROR] connecting ws")
 	errSendMsg = errors.New("[ERROR] sending msg on ws")
+	ErrReadMsg = errors.New("[ERROR] reading msg on ws")
 )
 
 const (

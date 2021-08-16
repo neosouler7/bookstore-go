@@ -24,10 +24,7 @@ var (
 func pingWs() {
 	msg := "{\"requestType\": \"PING\"}"
 	for {
-		err := websocketmanager.SendMsg(exchange, msg)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		_ = websocketmanager.SendMsg(exchange, msg)
 		time.Sleep(time.Second * 5)
 	}
 }
@@ -40,10 +37,7 @@ func subscribeWs(pairs interface{}) {
 		var symbol = strings.ToUpper(pairInfo[1])
 
 		msg := "{\"requestType\": \"SUBSCRIBE\", \"body\": {\"channel\": \"ORDERBOOK\", \"topic\": {\"priceCurrency\": \"" + strings.ToUpper(market) + "\", \"productCurrency\": \"" + strings.ToUpper(symbol) + "\", \"group\": \"EXPANDED\", \"size\": 30}}}"
-		err := websocketmanager.SendMsg(exchange, msg)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		_ = websocketmanager.SendMsg(exchange, msg)
 	}
 	fmt.Println("CON websocket subscribe msg sent!")
 }
@@ -51,9 +45,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs() {
 	for {
 		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		var data interface{}
 		err = json.Unmarshal(message, &data)

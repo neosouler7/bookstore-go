@@ -22,10 +22,7 @@ var (
 func pingWs() {
 	msg := "PING"
 	for {
-		err := websocketmanager.SendMsg(exchange, msg)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		_ = websocketmanager.SendMsg(exchange, msg)
 		time.Sleep(time.Second * 5)
 	}
 }
@@ -44,19 +41,14 @@ func subscribeWs(pairs interface{}) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("[{'ticket':'%s'}, {'type': 'orderbook', 'codes': [%s]}]", uuid, streams)
 
-	err := websocketmanager.SendMsg(exchange, msg)
+	_ = websocketmanager.SendMsg(exchange, msg)
 	fmt.Println("UPB websocket subscribe msg sent!")
-	if err != nil {
-		log.Fatalln(err)
-	}
 }
 
 func receiveWs() {
 	for {
 		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		if strings.Contains(string(message), "status") {
 			fmt.Println("PONG") // {"status":"UP"}

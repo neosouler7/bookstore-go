@@ -22,10 +22,7 @@ var (
 
 func pingWs(ts interface{}) {
 	msg := fmt.Sprintf("{\"pong\":%d}", int(ts.(float64)))
-	err := websocketmanager.SendMsg(exchange, msg)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	_ = websocketmanager.SendMsg(exchange, msg)
 	fmt.Printf("HBK PONG %s\n", msg)
 }
 
@@ -37,11 +34,8 @@ func subscribeWs(pairs interface{}) {
 		var symbol = strings.ToLower(pairInfo[1])
 
 		msg := fmt.Sprintf("{\"sub\": \"market.%s%s.depth.step0\"}", symbol, market)
-		err := websocketmanager.SendMsg(exchange, msg)
+		_ = websocketmanager.SendMsg(exchange, msg)
 		fmt.Println("HBK websocket subscribe msg sent!")
-		if err != nil {
-			log.Fatalln(err)
-		}
 	}
 
 }
@@ -49,9 +43,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs() {
 	for {
 		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		gzip, err := gzip.NewReader(bytes.NewReader(message))
 		if err != nil {

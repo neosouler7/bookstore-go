@@ -44,19 +44,14 @@ func subscribeWs(pairs interface{}) {
 	streams := fmt.Sprintf("\"orderbook:%s\"", strings.Join(streamSlice, ","))
 	msg := fmt.Sprintf("{\"accessToken\": \"null\", \"timestamp\": \"%d\", \"event\": \"korbit:subscribe\", \"data\": {\"channels\": [%s]}}", ts, streams)
 
-	err := websocketmanager.SendMsg(exchange, msg)
+	_ = websocketmanager.SendMsg(exchange, msg)
 	fmt.Println("KBT websocket subscribe msg sent!")
-	if err != nil {
-		log.Fatalln(err)
-	}
 }
 
 func receiveWs(pairs interface{}) {
 	for {
 		_, message, err := websocketmanager.Conn(exchange).ReadMessage()
-		if err != nil {
-			log.Fatalln(err)
-		}
+		commons.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		if strings.Contains(string(message), "connected") {
 			subscribeWs(pairs) // just once
