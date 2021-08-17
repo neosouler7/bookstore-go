@@ -26,6 +26,19 @@ const (
 var w *websocket.Conn
 var once sync.Once
 
+func Conn(exchange string) *websocket.Conn {
+	if w == nil {
+		once.Do(func() {
+			host, path := getHostPath(exchange)
+			u := url.URL{Scheme: "wss", Host: host, Path: path}
+			wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+			commons.HandleErr(err, errGetConn)
+			w = wPointer
+		})
+	}
+	return w
+}
+
 func getHostPath(exchange string) (string, string) {
 	var host, path string
 	switch exchange {
@@ -46,19 +59,6 @@ func getHostPath(exchange string) (string, string) {
 		path = "/ws"
 	}
 	return host, path
-}
-
-func Conn(exchange string) *websocket.Conn {
-	if w == nil {
-		once.Do(func() {
-			host, path := getHostPath(exchange)
-			u := url.URL{Scheme: "wss", Host: host, Path: path}
-			wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-			commons.HandleErr(err, errGetConn)
-			w = wPointer
-		})
-	}
-	return w
 }
 
 func SendMsg(exchange string, msg string) {
