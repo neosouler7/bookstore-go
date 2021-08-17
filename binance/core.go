@@ -33,7 +33,7 @@ func subscribeWs(pairs interface{}) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("{\"method\": \"SUBSCRIBE\",\"params\": [%s],\"id\": %d}", streams, time.Now().UnixNano()/100000)
 
-	_ = websocketmanager.SendMsg(exchange, msg)
+	websocketmanager.SendMsg(exchange, msg)
 	fmt.Println("BIN websocket subscribe msg sent!")
 }
 

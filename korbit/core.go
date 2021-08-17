@@ -43,7 +43,7 @@ func subscribeWs(pairs interface{}) {
 	streams := fmt.Sprintf("\"orderbook:%s\"", strings.Join(streamSlice, ","))
 	msg := fmt.Sprintf("{\"accessToken\": \"null\", \"timestamp\": \"%d\", \"event\": \"korbit:subscribe\", \"data\": {\"channels\": [%s]}}", ts, streams)
 
-	_ = websocketmanager.SendMsg(exchange, msg)
+	websocketmanager.SendMsg(exchange, msg)
 	fmt.Println("KBT websocket subscribe msg sent!")
 }
 

@@ -21,7 +21,7 @@ var (
 
 func pingWs(ts interface{}) {
 	msg := fmt.Sprintf("{\"pong\":%d}", int(ts.(float64)))
-	_ = websocketmanager.SendMsg(exchange, msg)
+	websocketmanager.SendMsg(exchange, msg)
 	fmt.Printf("HBK PONG %s\n", msg)
 }
 
@@ -33,7 +33,7 @@ func subscribeWs(pairs interface{}) {
 		var symbol = strings.ToLower(pairInfo[1])
 
 		msg := fmt.Sprintf("{\"sub\": \"market.%s%s.depth.step0\"}", symbol, market)
-		_ = websocketmanager.SendMsg(exchange, msg)
+		websocketmanager.SendMsg(exchange, msg)
 		fmt.Println("HBK websocket subscribe msg sent!")
 	}
 

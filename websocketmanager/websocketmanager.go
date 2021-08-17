@@ -61,8 +61,7 @@ func Conn(exchange string) *websocket.Conn {
 	return w
 }
 
-func SendMsg(exchange string, msg string) error {
+func SendMsg(exchange string, msg string) {
 	err := Conn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
 	commons.HandleErr(err, errSendMsg)
-	return nil
 }

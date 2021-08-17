@@ -20,7 +20,7 @@ var (
 func pingWs() {
 	msg := "PING"
 	for {
-		_ = websocketmanager.SendMsg(exchange, msg)
+		websocketmanager.SendMsg(exchange, msg)
 		time.Sleep(time.Second * 5)
 	}
 }
@@ -39,7 +39,7 @@ func subscribeWs(pairs interface{}) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("[{'ticket':'%s'}, {'type': 'orderbook', 'codes': [%s]}]", uuid, streams)
 
-	_ = websocketmanager.SendMsg(exchange, msg)
+	websocketmanager.SendMsg(exchange, msg)
 	fmt.Println("UPB websocket subscribe msg sent!")
 }
 

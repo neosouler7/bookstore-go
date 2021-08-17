@@ -23,7 +23,7 @@ var (
 func pingWs() {
 	msg := "{\"requestType\": \"PING\"}"
 	for {
-		_ = websocketmanager.SendMsg(exchange, msg)
+		websocketmanager.SendMsg(exchange, msg)
 		time.Sleep(time.Second * 5)
 	}
 }
@@ -36,7 +36,7 @@ func subscribeWs(pairs interface{}) {
 		var symbol = strings.ToUpper(pairInfo[1])
 
 		msg := "{\"requestType\": \"SUBSCRIBE\", \"body\": {\"channel\": \"ORDERBOOK\", \"topic\": {\"priceCurrency\": \"" + strings.ToUpper(market) + "\", \"productCurrency\": \"" + strings.ToUpper(symbol) + "\", \"group\": \"EXPANDED\", \"size\": 30}}}"
-		_ = websocketmanager.SendMsg(exchange, msg)
+		websocketmanager.SendMsg(exchange, msg)
 	}
 	fmt.Println("CON websocket subscribe msg sent!")
 }
