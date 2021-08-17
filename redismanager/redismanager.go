@@ -79,7 +79,7 @@ func newOrderbook(exchange string, market string, symbol string, askPrice string
 func (ob *orderbook) setOrderbook(api string) {
 	logger := log.New(os.Stdout, " INFO: ", log.LstdFlags|log.Lmicroseconds)
 
-	key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
+	key := fmt.Sprintf("ob-go:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
 	value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
 
 	prevTs := tsMap[fmt.Sprintf("%s:%s", ob.market, ob.symbol)]
