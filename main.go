@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"neosouler7/bookstore-go/binance"
@@ -12,10 +11,6 @@ import (
 	"neosouler7/bookstore-go/tgmanager"
 	"neosouler7/bookstore-go/upbit"
 	"os"
-)
-
-var (
-	errExchangeNotFound = errors.New("[ERROR] enter proper exchange")
 )
 
 func usage() {

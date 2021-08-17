@@ -21,7 +21,6 @@ var (
 	errGetObTargetPrice = errors.New("[ERROR] getting ob target price")
 	errInitRedisClient  = errors.New("[ERROR] connecting redis")
 	errSetRedis         = errors.New("[ERROR] set redis")
-	// errExecRedis       = errors.New("[ERROR] execu redis")
 )
 
 func client() *redis.Client {
@@ -60,7 +59,7 @@ func PreHandleOrderbook(api string, exchange string, market string, symbol strin
 	commons.HandleErr(err, errGetObTargetPrice)
 
 	ob := newOrderbook(exchange, market, symbol, askPrice, bidPrice, ts)
-	setOrderbook(api, *ob)
+	ob.setOrderbook(api)
 }
 
 func newOrderbook(exchange string, market string, symbol string, askPrice string, bidPrice string, ts string) *orderbook {
@@ -75,7 +74,7 @@ func newOrderbook(exchange string, market string, symbol string, askPrice string
 	return ob
 }
 
-func setOrderbook(api string, ob orderbook) error {
+func (ob *orderbook) setOrderbook(api string) error {
 	logger := log.New(os.Stdout, " INFO: ", log.LstdFlags|log.Lmicroseconds)
 
 	key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
