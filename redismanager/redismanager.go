@@ -95,36 +95,3 @@ func (ob *orderbook) setOrderbook(api string) {
 		logger.Printf(">>> %s %s\n", api, key)
 	}
 }
-
-// func (ob *orderbook) setOrderbook(api string) error {
-// 	fmt.Println(tsMap)
-// 	logger := log.New(os.Stdout, " INFO: ", log.LstdFlags|log.Lmicroseconds)
-
-// 	key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
-// 	value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
-
-// 	prev, _ := client().Get(ctx, key).Result()
-// 	if prev == "" { // if no ob stored,
-// 		err := client().Set(ctx, key, value, 0).Err()
-// 		commons.HandleErr(err, errSetRedis)
-
-// 		logger.SetPrefix("DEBUG: ")
-// 		logger.Printf("set %s redis since init!\n", key)
-// 	}
-
-// 	newTs, _ := strconv.ParseInt(ob.ts, 10, 64)
-// 	prevTs, _ := strconv.ParseInt(strings.Split(prev, "|")[0], 10, 64)
-// 	// currentTs := time.Now().UnixNano() / 100000
-
-// 	if newTs > prevTs {
-// 		err := client().Set(ctx, key, value, 0).Err()
-// 		commons.HandleErr(err, errSetRedis)
-
-// 		timeGap := newTs - prevTs
-// 		logger.Printf("Set %s %s %4dms\n", api, key, timeGap)
-// 	} else {
-// 		logger.SetPrefix("DEBUG: ")
-// 		logger.Printf(">>> %s %s\n", api, key)
-// 	}
-// 	return nil
-// }
