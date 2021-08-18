@@ -2,9 +2,10 @@ package upbit
 
 import (
 	"fmt"
-	"neosouler7/bookstore-go/commons"
-	"neosouler7/bookstore-go/redismanager"
 	"strings"
+
+	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/redismanager"
 )
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {

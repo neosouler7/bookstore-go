@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"neosouler7/bookstore-go/commons"
-	"neosouler7/bookstore-go/restmanager"
-	"neosouler7/bookstore-go/websocketmanager"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/restmanager"
+	"github.com/neosouler7/bookstore-go/websocketmanager"
 )
 
 const latencyAllowed float64 = 10.0 // per 1 second

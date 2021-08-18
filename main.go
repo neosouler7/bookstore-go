@@ -3,14 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
-	"neosouler7/bookstore-go/binance"
-	"neosouler7/bookstore-go/bithumb"
-	"neosouler7/bookstore-go/coinone"
-	"neosouler7/bookstore-go/huobikorea"
-	"neosouler7/bookstore-go/korbit"
-	"neosouler7/bookstore-go/tgmanager"
-	"neosouler7/bookstore-go/upbit"
 	"os"
+
+	"github.com/neosouler7/bookstore-go/bithumb"
+	"github.com/neosouler7/bookstore-go/coinone"
+	"github.com/neosouler7/bookstore-go/huobikorea"
+	"github.com/neosouler7/bookstore-go/korbit"
+	"github.com/neosouler7/bookstore-go/upbit"
+
+	"github.com/neosouler7/bookstore-go/binance"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 func usage() {

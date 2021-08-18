@@ -1,10 +1,11 @@
 package bithumb
 
 import (
-	"neosouler7/bookstore-go/commons"
-	"neosouler7/bookstore-go/restmanager"
 	"sync"
 	"time"
+
+	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/restmanager"
 )
 
 var (

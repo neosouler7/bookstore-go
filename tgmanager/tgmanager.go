@@ -3,9 +3,10 @@ package tgmanager
 import (
 	"errors"
 	"fmt"
-	"neosouler7/bookstore-go/commons"
 	"sync"
 	"time"
+
+	"github.com/neosouler7/bookstore-go/commons"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )

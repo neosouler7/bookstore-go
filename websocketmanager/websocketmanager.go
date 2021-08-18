@@ -2,9 +2,10 @@ package websocketmanager
 
 import (
 	"errors"
-	"neosouler7/bookstore-go/commons"
 	"net/url"
 	"sync"
+
+	"github.com/neosouler7/bookstore-go/commons"
 
 	"github.com/gorilla/websocket"
 )

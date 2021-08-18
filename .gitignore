@@ -1,6 +1,7 @@
 config.json
 dump.rdb
 .vscode
+Dockerfile
 
 # Binaries for programs and plugins
 *.exe
