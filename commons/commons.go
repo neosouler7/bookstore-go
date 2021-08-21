@@ -15,7 +15,6 @@ import (
 
 var (
 	errDecode = errors.New("[ERROR] decoding")
-	errEncode = errors.New("[ERROR] encoding")
 )
 
 type config struct {
