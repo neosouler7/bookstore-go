@@ -3,7 +3,6 @@ package tgmanager
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -26,14 +25,7 @@ var t *tgbotapi.BotAPI
 var once sync.Once
 
 func init() {
-	tz := os.Getenv("TZ")
-	if tz == "" {
-		fmt.Println("tg follows default timezone")
-		tz = "Asia/Seoul"
-	} else {
-		fmt.Println("tg follows SERVER timezone")
-	}
-	location, _ = time.LoadLocation(tz)
+	location = commons.SetTimeZone("tg")
 }
 
 func Bot() *tgbotapi.BotAPI {

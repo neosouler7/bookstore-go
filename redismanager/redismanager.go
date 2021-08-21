@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -27,14 +26,7 @@ var (
 )
 
 func init() {
-	tz := os.Getenv("TZ")
-	if tz == "" {
-		fmt.Println("redis follows default timezone")
-		tz = "Asia/Seoul"
-	} else {
-		fmt.Println("redis follows SERVER timezone")
-	}
-	location, _ = time.LoadLocation(tz)
+	location = commons.SetTimeZone("redis")
 }
 
 func client() *redis.Client {

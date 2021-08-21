@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -116,4 +117,16 @@ func Bytes2Json(data []byte, i interface{}) {
 	r := bytes.NewReader(data)
 	err := json.NewDecoder(r).Decode(i)
 	HandleErr(err, errDecode)
+}
+
+func SetTimeZone(name string) *time.Location {
+	tz := os.Getenv("TZ")
+	if tz == "" {
+		tz = "Asia/Seoul"
+		fmt.Printf("%s follows default %s\n", name, tz)
+	} else {
+		fmt.Printf("%s follows SERVER %s\n", name, tz)
+	}
+	location, _ := time.LoadLocation(tz)
+	return location
 }
