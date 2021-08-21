@@ -38,7 +38,8 @@ func getAttr(obj interface{}, fieldName string) reflect.Value {
 }
 
 func ReadConfig(key string) interface{} {
-	file, _ := os.Open("config.json")
+	path, _ := os.Getwd()
+	file, _ := os.Open(path + "/config/config.json")
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 
@@ -123,9 +124,9 @@ func SetTimeZone(name string) *time.Location {
 	tz := os.Getenv("TZ")
 	if tz == "" {
 		tz = "Asia/Seoul"
-		fmt.Printf("%s follows default %s\n", name, tz)
+		fmt.Printf("%s : DEFAULT %s\n", name, tz)
 	} else {
-		fmt.Printf("%s follows SERVER %s\n", name, tz)
+		fmt.Printf("%s : SERVER %s\n", name, tz)
 	}
 	location, _ := time.LoadLocation(tz)
 	return location
