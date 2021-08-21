@@ -3,6 +3,7 @@ package tgmanager
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 var (
 	token         = commons.ReadConfig("Tg").(map[string]interface{})["token"].(string)
 	chat_ids      = commons.ReadConfig("Tg").(map[string]interface{})["chat_ids"].([]interface{})
+	location      *time.Location
+	StampMicro    = "Jan _2 15:04:05.000000"
 	errGetBot     = errors.New("[ERROR] error on init tgBot")
 	errSendMsg    = errors.New("[ERROR] error on sendMsg")
 	errGetUpdates = errors.New("[ERROR] error on get updates")
@@ -22,6 +25,17 @@ var (
 var t *tgbotapi.BotAPI
 var once sync.Once
 
+func init() {
+	tz := os.Getenv("TZ")
+	if tz == "" {
+		fmt.Println("tg follows default timezone")
+		tz = "Asia/Seoul"
+	} else {
+		fmt.Println("tg follows SERVER timezone")
+	}
+	location, _ = time.LoadLocation(tz)
+}
+
 func Bot() *tgbotapi.BotAPI {
 	if t == nil {
 		once.Do(func() {
@@ -29,14 +43,15 @@ func Bot() *tgbotapi.BotAPI {
 			commons.HandleErr(err, errGetBot)
 			t = tgPointer
 			t.Debug = true
+
 		})
 	}
 	return t
 }
 
 func SendMsg(tgMsg string) {
-	currentTime := time.Now().Format("2006-01-02 15:04:05.123456")
-	tgMsg = fmt.Sprintf("%s \n%s", tgMsg, currentTime)
+	now := time.Now().In(location).Format(StampMicro)
+	tgMsg = fmt.Sprintf("%s \n%s", tgMsg, now)
 
 	for _, chat_id := range chat_ids {
 		msg := tgbotapi.NewMessage(int64(chat_id.(float64)), tgMsg)

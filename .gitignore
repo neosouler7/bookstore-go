@@ -2,6 +2,7 @@ config.json
 dump.rdb
 .vscode
 Dockerfile
+*.sh
 
 # Binaries for programs and plugins
 *.exe

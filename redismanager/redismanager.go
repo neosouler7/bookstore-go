@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/neosouler7/bookstore-go/commons"
 
@@ -19,10 +19,23 @@ var (
 	r                   *redis.Client
 	once                sync.Once
 	tsMap               map[string]int
+	location            *time.Location
+	StampMicro          = "Jan _2 15:04:05.000000"
 	errGetObTargetPrice = errors.New("[ERROR] getting ob target price")
 	errInitRedisClient  = errors.New("[ERROR] connecting redis")
 	errSetRedis         = errors.New("[ERROR] set redis")
 )
+
+func init() {
+	tz := os.Getenv("TZ")
+	if tz == "" {
+		fmt.Println("redis follows default timezone")
+		tz = "Asia/Seoul"
+	} else {
+		fmt.Println("redis follows SERVER timezone")
+	}
+	location, _ = time.LoadLocation(tz)
+}
 
 func client() *redis.Client {
 	if r == nil {
@@ -78,7 +91,7 @@ func newOrderbook(exchange string, market string, symbol string, askPrice string
 }
 
 func (ob *orderbook) setOrderbook(api string) {
-	logger := log.New(os.Stdout, " INFO: ", log.LstdFlags|log.Lmicroseconds)
+	now := time.Now().In(location).Format(StampMicro)
 
 	key := fmt.Sprintf("ob-go:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
 	value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
@@ -90,9 +103,8 @@ func (ob *orderbook) setOrderbook(api string) {
 		err := client().Set(ctx, key, value, 0).Err()
 		commons.HandleErr(err, errSetRedis)
 		tsMap[fmt.Sprintf("%s:%s", ob.market, ob.symbol)] = int(ts)
-		logger.Printf("Set %s %s %4dms\n", api, key, timeGap)
+		fmt.Printf("%s Set %s %s %4dms\n", now, api, key, timeGap)
 	} else {
-		logger.SetPrefix("DEBUG: ")
-		logger.Printf(">>> %s %s\n", api, key)
+		fmt.Printf("%s >>> %s %s\n", now, api, key)
 	}
 }
