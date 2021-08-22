@@ -81,43 +81,49 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	err := fastHttpClient().Do(req, res)
 	commons.HandleErr(err, errHttpRequest)
 
-	body := res.Body()
-	switch exchange {
-	case "upb":
-		var rJson []interface{}
-		commons.Bytes2Json(body, &rJson)
+	body, statusCode := res.Body(), res.StatusCode()
+	switch statusCode {
+	case 200:
+		switch exchange {
+		case "upb":
+			var rJson []interface{}
+			commons.Bytes2Json(body, &rJson)
 
-		c <- rJson[0].(map[string]interface{})
-	case "con":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
+			c <- rJson[0].(map[string]interface{})
+		case "con":
+			var rJson interface{}
+			commons.Bytes2Json(body, &rJson)
 
-		c <- rJson.(map[string]interface{})
-	case "bin":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
+			c <- rJson.(map[string]interface{})
+		case "bin":
+			var rJson interface{}
+			commons.Bytes2Json(body, &rJson)
 
-		// add market, symbol since no value on return
-		rJson.(map[string]interface{})["market"] = market
-		rJson.(map[string]interface{})["symbol"] = symbol
-		c <- rJson.(map[string]interface{})
-	case "kbt":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
+			// add market, symbol since no value on return
+			rJson.(map[string]interface{})["market"] = market
+			rJson.(map[string]interface{})["symbol"] = symbol
+			c <- rJson.(map[string]interface{})
+		case "kbt":
+			var rJson interface{}
+			commons.Bytes2Json(body, &rJson)
 
-		// add market, symbol since no value on return
-		rJson.(map[string]interface{})["market"] = market
-		rJson.(map[string]interface{})["symbol"] = symbol
-		c <- rJson.(map[string]interface{})
-	case "hbk":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
+			// add market, symbol since no value on return
+			rJson.(map[string]interface{})["market"] = market
+			rJson.(map[string]interface{})["symbol"] = symbol
+			c <- rJson.(map[string]interface{})
+		case "hbk":
+			var rJson interface{}
+			commons.Bytes2Json(body, &rJson)
 
-		c <- rJson.(map[string]interface{})
-	case "bmb":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
+			c <- rJson.(map[string]interface{})
+		case "bmb":
+			var rJson interface{}
+			commons.Bytes2Json(body, &rJson)
 
-		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
+			c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
+		}
+	default:
+		fmt.Printf("%s restapi error with status: %d\n", exchange, statusCode)
 	}
+
 }

@@ -18,9 +18,10 @@ var (
 )
 
 type config struct {
-	Redis map[string]interface{}
-	Tg    map[string]interface{}
-	Pairs map[string]interface{}
+	Redis     map[string]interface{}
+	Tg        map[string]interface{}
+	RateLimit map[string]interface{}
+	Pairs     map[string]interface{}
 }
 
 func getAttr(obj interface{}, fieldName string) reflect.Value {

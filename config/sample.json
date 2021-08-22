@@ -9,6 +9,15 @@
         "token": "",
         "chat_ids": []
     },
+    "RateLimit": {
+        "buffer": 1.2,
+        "bin": 20,
+        "bmb": 135,
+        "con": 5,
+        "hbk": 10,
+        "kbt": 12,
+        "upb": 10
+    },
     "Pairs": {
         "upb": ["krw:eth:30", "krw:xrp:300"],
         "con": ["krw:eth:30", "krw:xrp:300"]

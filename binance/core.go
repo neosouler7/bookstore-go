@@ -15,8 +15,6 @@ var (
 	exchange string
 )
 
-const latencyAllowed float64 = 20.0 // per 1 second
-
 // func pingWs() {
 
 // }
@@ -56,6 +54,8 @@ func receiveWs() {
 
 func rest(pairs interface{}) {
 	c := make(chan map[string]interface{})
+	var rateLimit = commons.ReadConfig("RateLimit").(map[string]interface{})[exchange].(float64)
+	var buffer = commons.ReadConfig("RateLimit").(map[string]interface{})["buffer"].(float64)
 
 	for {
 		for _, pair := range pairs.([]interface{}) {
@@ -67,11 +67,10 @@ func rest(pairs interface{}) {
 			SetOrderbook("R", exchange, rJson)
 		}
 
-		// 1번에 (1s / LATENCY_ALLOWD) = 0.1s 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
-		// ex) 0.1s * 2 = 0.2s => 200ms
-		buffer := 1.0
+		// 1번에 (1s / rateLimit)s 만큼 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
+		// ex) 1 / 10 s * 2 = 0.2s => 200ms
 		pairsLength := float64(len(pairs.([]interface{}))) * buffer
-		time.Sleep(time.Millisecond * time.Duration(int(1/latencyAllowed*pairsLength*10*100)))
+		time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
 	}
 }
 
