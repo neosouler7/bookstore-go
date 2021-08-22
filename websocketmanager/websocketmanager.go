@@ -22,6 +22,7 @@ const (
 	binEndPoint string = "stream.binance.com:9443"
 	kbtEndPoint string = "ws.korbit.co.kr"
 	hbkEndPoint string = "api-cloud.huobi.co.kr"
+	bmbEndPoint string = "pubwss.bithumb.com"
 )
 
 var w *websocket.Conn
@@ -58,6 +59,9 @@ func getHostPath(exchange string) (string, string) {
 	case "hbk":
 		host = hbkEndPoint
 		path = "/ws"
+	case "bmb":
+		host = bmbEndPoint
+		path = "/pub/ws"
 	}
 	return host, path
 }

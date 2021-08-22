@@ -56,8 +56,8 @@ func getEndpointQuerystring(exchange string, market string, symbol string) (stri
 		endPoint = hbkEndPoint + "/market/depth"
 		queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
 	case "bmb":
-		endPoint = bmbEndPoint + "/public/orderbook/"
-		queryString = fmt.Sprintf("%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
+		endPoint = bmbEndPoint + fmt.Sprintf("/public/orderbook/%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
+		queryString = "" // bmb does not use querystring
 	}
 	return endPoint, queryString
 }
