@@ -23,8 +23,8 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		for i := range askResponse {
 			askR := askResponse[i].(map[string]interface{})
 			bidR := bidResponse[i].(map[string]interface{})
-			ask := [2]string{fmt.Sprintf("%f", askR["price"]), fmt.Sprintf("%f", askR["quantity"])}
-			bid := [2]string{fmt.Sprintf("%f", bidR["price"]), fmt.Sprintf("%f", bidR["quantity"])}
+			ask := [2]string{fmt.Sprintf("%s", askR["price"]), fmt.Sprintf("%s", askR["quantity"])}
+			bid := [2]string{fmt.Sprintf("%s", bidR["price"]), fmt.Sprintf("%s", bidR["quantity"])}
 			askSlice = append(askSlice, ask)
 			bidSlice = append(bidSlice, bid)
 		}
