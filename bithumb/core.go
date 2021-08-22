@@ -2,6 +2,7 @@ package bithumb
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +14,7 @@ import (
 
 var (
 	exchange string
-	rJsonMap map[string]interface{}
+	rJsonWs  map[string]interface{}
 )
 
 func subscribeWs(pairs interface{}) {
@@ -33,9 +34,9 @@ func subscribeWs(pairs interface{}) {
 	fmt.Println("BMB websocket subscribe msg sent!")
 }
 
-func restWs(pairs interface{}) {
+func receiveWs(pairs interface{}) {
 	c := make(chan map[string]interface{})
-	rJsonMap = make(map[string]interface{})
+	rJsonWs = make(map[string]interface{})
 
 	// rest for each pairs just once
 	for _, pair := range pairs.([]interface{}) {
@@ -47,7 +48,7 @@ func restWs(pairs interface{}) {
 		rJson := <-c
 		market := strings.ToLower(rJson["payment_currency"].(string))
 		symbol := strings.ToLower(rJson["order_currency"].(string))
-		rJsonMap[fmt.Sprintf("%s:%s", market, symbol)] = rJson
+		rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
 	}
 
 	// init websocket
@@ -63,31 +64,104 @@ func restWs(pairs interface{}) {
 			var rJson interface{}
 			commons.Bytes2Json(msgBytes, &rJson)
 
-			changed := rJson.(map[string]interface{})["content"].(map[string]interface{})["list"].([]interface{})
-			var pairInfo = strings.Split(changed[0].(map[string]interface{})["symbol"].(string), "_")
-			var market = strings.ToLower(pairInfo[1])
-			var symbol = strings.ToLower(pairInfo[0])
+			content := rJson.(map[string]interface{})["content"]
+			ts := content.(map[string]interface{})["datetime"].(string)
+			changed := content.(map[string]interface{})["list"].([]interface{})
+			pairInfo := strings.Split(changed[0].(map[string]interface{})["symbol"].(string), "_")
+			market := strings.ToLower(pairInfo[1])
+			symbol := strings.ToLower(pairInfo[0])
+			key := fmt.Sprintf("%s:%s", market, symbol)
 
-			if rJsonMap[fmt.Sprintf("%s:%s", market, symbol)] == nil {
+			if rJsonWs[key] == nil {
 				fmt.Printf("pass ws of %s:%s since no rest value\n", market, symbol)
 			} else {
-				fmt.Println(changed) // content > list
-				// TODO
-				// from websocket 변경호가
-				// {"type":"orderbookdepth","content":{"list":[{"symbol":"XRP_KRW","orderType":"ask","price":"1448","quantity":"12565.6221","total":"7"},{"symbol":"XRP_KRW","orderType":"ask","price":"1449","quantity":"18449.1301","total":"10"},{"symbol":"XRP_KRW","orderType":"ask","price":"1456","quantity":"223405.2277","total":"18"},{"symbol":"XRP_KRW","orderType":"bid","price":"1444","quantity":"52551.0719","total":"61"},{"symbol":"XRP_KRW","orderType":"bid","price":"1442","quantity":"78614.4644","total":"33"},{"symbol":"XRP_KRW","orderType":"bid","price":"1441","quantity":"70382.8896","total":"20"},{"symbol":"XRP_KRW","orderType":"bid","price":"1440","quantity":"27325.6912","total":"38"},{"symbol":"XRP_KRW","orderType":"bid","price":"1437","quantity":"22941.0609","total":"25"}],"datetime":"1629599007105405"}}
+				var obAsk []interface{}
+				var obBid []interface{}
 
-				// get rJson[market:symbol]
-				// for each ask/bid loop, and change value or pop
-				// set on orderbook
+				for _, c := range changed {
+					action := c.(map[string]interface{})["orderType"]
+					price, _ := strconv.ParseFloat(c.(map[string]interface{})["price"].(string), 64)
+					quantity := c.(map[string]interface{})["quantity"]
 
-				// SetOrderbook("W", exchange, rJson[market:symbol].(map[string]interface{}))
+					obAsk = rJsonWs[key].(map[string]interface{})["asks"].([]interface{})
+					obBid = rJsonWs[key].(map[string]interface{})["bids"].([]interface{})
+					switch action {
+					case "ask": // ask price going up
+						min_price, _ := strconv.ParseFloat(obAsk[0].(map[string]interface{})["price"].(string), 64)
+						max_price, _ := strconv.ParseFloat(obAsk[len(obAsk)-1].(map[string]interface{})["price"].(string), 64)
+						a := map[string]interface{}{
+							"price":    fmt.Sprintf("%f", price),
+							"quantity": quantity,
+						}
+
+						if price < min_price { // prepend
+							obAsk = append([]interface{}{a}, obAsk...)
+						}
+
+						for i := range obAsk {
+							obPrice, _ := strconv.ParseFloat(obAsk[i].(map[string]interface{})["price"].(string), 64)
+							if price == obPrice {
+								obAsk[i].(map[string]interface{})["quantity"] = quantity
+							}
+						}
+
+						if price > max_price {
+							obAsk = append(obAsk, a)
+						}
+
+					case "bid": // bid price going down
+						max_price, _ := strconv.ParseFloat(obBid[0].(map[string]interface{})["price"].(string), 64)
+						min_price, _ := strconv.ParseFloat(obBid[len(obBid)-1].(map[string]interface{})["price"].(string), 64)
+						b := map[string]interface{}{
+							"price":    fmt.Sprintf("%f", price),
+							"quantity": quantity,
+						}
+
+						if price > max_price { // prepend
+							obBid = append([]interface{}{b}, obBid...)
+						}
+
+						for i := range obBid {
+							obPrice, _ := strconv.ParseFloat(obBid[i].(map[string]interface{})["price"].(string), 64)
+							if price == obPrice {
+								obBid[i].(map[string]interface{})["quantity"] = quantity
+							}
+						}
+
+						if price < min_price {
+							obBid = append(obBid, b)
+						}
+					}
+				}
+
+				// remove orderbook of volume 0
+				var obAskF []interface{}
+				var obBidF []interface{}
+				for i := range obAsk {
+					obQuantity, _ := strconv.ParseFloat(obAsk[i].(map[string]interface{})["quantity"].(string), 64)
+					if obQuantity != 0 {
+						obAskF = append(obAskF, obAsk[i])
+					}
+				}
+				for i := range obBid {
+					obQuantity, _ := strconv.ParseFloat(obBid[i].(map[string]interface{})["quantity"].(string), 64)
+					if obQuantity != 0 {
+						obBidF = append(obBidF, obBid[i])
+					}
+				}
+				rJsonWs[key].(map[string]interface{})["asks"] = obAskF
+				rJsonWs[key].(map[string]interface{})["bids"] = obBidF
+
+				// update timestamp
+				rJsonWs[key].(map[string]interface{})["timestamp"] = ts
+
+				SetOrderbook("W", exchange, rJsonWs[key].(map[string]interface{}))
 			}
-
 		}
 	}
 }
 
-func onlyRest(pairs interface{}) {
+func rest(pairs interface{}) {
 	c := make(chan map[string]interface{})
 	var rateLimit = commons.ReadConfig("RateLimit").(map[string]interface{})[exchange].(float64)
 	var buffer = commons.ReadConfig("RateLimit").(map[string]interface{})["buffer"].(float64)
@@ -99,6 +173,9 @@ func onlyRest(pairs interface{}) {
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
+			market := strings.ToLower(rJson["payment_currency"].(string))
+			symbol := strings.ToLower(rJson["order_currency"].(string))
+			rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
 			SetOrderbook("R", exchange, rJson)
 		}
 
@@ -115,10 +192,12 @@ func Run(e string) {
 
 	var wg sync.WaitGroup
 
-	// since bmb returns changed value of orderbooks
+	// bmb returns CHANGED orderbooks
 	wg.Add(1)
-	// go onlyRest(pairs)
-	go restWs(pairs)
+	go receiveWs(pairs)
+
+	wg.Add(1)
+	go rest(pairs)
 
 	wg.Wait()
 }
