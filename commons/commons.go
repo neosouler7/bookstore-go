@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	errDecode = errors.New("[ERROR] decoding")
+	errReadConfig = errors.New("[ERROR] reading config")
+	errDecode     = errors.New("[ERROR] decoding")
 )
 
 type config struct {
@@ -46,8 +47,9 @@ func ReadConfig(key string) interface{} {
 	c := config{}
 	err := decoder.Decode(&c)
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Fatalln(errReadConfig)
 	}
+
 	return getAttr(&c, key).Interface()
 }
 
@@ -107,17 +109,12 @@ func Min(a, b int) int {
 	return b
 }
 
-// get err as returned error, and log with specific errMsg
-func HandleErr(err error, errMsg error) {
-	if err != nil {
-		log.Fatalln(errMsg)
-	}
-}
-
 func Bytes2Json(data []byte, i interface{}) {
 	r := bytes.NewReader(data)
 	err := json.NewDecoder(r).Decode(i)
-	HandleErr(err, errDecode)
+	if err != nil {
+		log.Fatalln(errDecode)
+	}
 }
 
 func SetTimeZone(name string) *time.Location {

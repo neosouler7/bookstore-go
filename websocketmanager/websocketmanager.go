@@ -5,9 +5,8 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/neosouler7/bookstore-go/commons"
-
 	"github.com/gorilla/websocket"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 var (
@@ -34,7 +33,7 @@ func Conn(exchange string) *websocket.Conn {
 			host, path := getHostPath(exchange)
 			u := url.URL{Scheme: "wss", Host: host, Path: path}
 			wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-			commons.HandleErr(err, errGetConn)
+			tgmanager.HandleErr(err, errGetConn)
 			w = wPointer
 		})
 	}
@@ -68,5 +67,5 @@ func getHostPath(exchange string) (string, string) {
 
 func SendMsg(exchange string, msg string) {
 	err := Conn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
-	commons.HandleErr(err, errSendMsg)
+	tgmanager.HandleErr(err, errSendMsg)
 }

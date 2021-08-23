@@ -8,6 +8,7 @@ import (
 
 	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/restmanager"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 	"github.com/neosouler7/bookstore-go/websocketmanager"
 
 	"github.com/google/uuid"
@@ -46,7 +47,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs() {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		commons.HandleErr(err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		if strings.Contains(string(msgBytes), "status") {
 			fmt.Println("PONG") // {"status":"UP"}

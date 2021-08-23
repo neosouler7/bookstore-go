@@ -3,6 +3,7 @@ package tgmanager
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -32,7 +33,9 @@ func Bot() *tgbotapi.BotAPI {
 	if t == nil {
 		once.Do(func() {
 			tgPointer, err := tgbotapi.NewBotAPI(token)
-			commons.HandleErr(err, errGetBot)
+			if err != nil {
+				log.Fatalln(errGetBot)
+			}
 			t = tgPointer
 			t.Debug = true
 
@@ -48,7 +51,9 @@ func SendMsg(tgMsg string) {
 	for _, chat_id := range chat_ids {
 		msg := tgbotapi.NewMessage(int64(chat_id.(float64)), tgMsg)
 		_, err := Bot().Send(msg)
-		commons.HandleErr(err, errSendMsg)
+		if err != nil {
+			log.Fatalln(errSendMsg)
+		}
 	}
 }
 
@@ -58,12 +63,22 @@ func GetUpdates() {
 	u.Timeout = 60
 
 	updateChannel, err := Bot().GetUpdatesChan(u)
-	commons.HandleErr(err, errGetUpdates)
+	if err != nil {
+		log.Fatalln(errGetUpdates)
+	}
 
 	for update := range updateChannel {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
 		}
 		fmt.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+	}
+}
+
+// get err as returned error, and log with specific errMsg
+func HandleErr(err error, errMsg error) {
+	if err != nil {
+		SendMsg(errMsg.Error())
+		log.Fatalln(errMsg)
 	}
 }

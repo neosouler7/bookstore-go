@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/neosouler7/bookstore-go/binance"
 	"github.com/neosouler7/bookstore-go/bithumb"
 	"github.com/neosouler7/bookstore-go/coinone"
 	"github.com/neosouler7/bookstore-go/huobikorea"
 	"github.com/neosouler7/bookstore-go/korbit"
-	"github.com/neosouler7/bookstore-go/upbit"
-
-	"github.com/neosouler7/bookstore-go/binance"
 	"github.com/neosouler7/bookstore-go/tgmanager"
+	"github.com/neosouler7/bookstore-go/upbit"
 )
 
 func usage() {

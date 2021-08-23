@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 
 	"github.com/valyala/fasthttp"
 )
@@ -79,7 +80,7 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	req.URI().SetQueryString(queryString)
 
 	err := fastHttpClient().Do(req, res)
-	commons.HandleErr(err, errHttpRequest)
+	tgmanager.HandleErr(err, errHttpRequest)
 
 	body, statusCode := res.Body(), res.StatusCode()
 	switch statusCode {

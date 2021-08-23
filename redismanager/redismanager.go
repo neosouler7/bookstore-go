@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -40,7 +41,7 @@ func client() *redis.Client {
 			})
 
 			_, err := r.Ping(ctx).Result()
-			commons.HandleErr(err, errInitRedisClient)
+			tgmanager.HandleErr(err, errInitRedisClient)
 
 			tsMap = make(map[string]int)
 		})
@@ -62,9 +63,9 @@ func PreHandleOrderbook(api string, exchange string, market string, symbol strin
 	var targetVolume = targetVolumeMap[market+":"+symbol]
 
 	askPrice, err := commons.GetObTargetPrice(targetVolume, askSlice)
-	commons.HandleErr(err, errGetObTargetPrice)
+	tgmanager.HandleErr(err, errGetObTargetPrice)
 	bidPrice, err := commons.GetObTargetPrice(targetVolume, bidSlice)
-	commons.HandleErr(err, errGetObTargetPrice)
+	tgmanager.HandleErr(err, errGetObTargetPrice)
 
 	ob := newOrderbook(exchange, market, symbol, askPrice, bidPrice, ts)
 	ob.setOrderbook(api)
@@ -94,7 +95,7 @@ func (ob *orderbook) setOrderbook(api string) {
 	timeGap := int(ts) - prevTs
 	if timeGap > 0 {
 		err := client().Set(ctx, key, value, 0).Err()
-		commons.HandleErr(err, errSetRedis)
+		tgmanager.HandleErr(err, errSetRedis)
 		tsMap[fmt.Sprintf("%s:%s", ob.market, ob.symbol)] = int(ts)
 		fmt.Printf("%s Set %s %s %4dms\n", now, api, key, timeGap)
 	} else {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/restmanager"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 	"github.com/neosouler7/bookstore-go/websocketmanager"
 )
 
@@ -43,7 +44,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs() {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		commons.HandleErr(err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(err, websocketmanager.ErrReadMsg)
 
 		var data interface{}
 		commons.Bytes2Json(msgBytes, &data)
