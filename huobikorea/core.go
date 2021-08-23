@@ -20,7 +20,7 @@ var (
 	exchange string
 )
 
-func pingWs(ts interface{}) {
+func pongWs(ts interface{}) {
 	msg := fmt.Sprintf("{\"pong\":%d}", int(ts.(float64)))
 	websocketmanager.SendMsg(exchange, msg)
 	fmt.Printf("HBK PONG %s\n", msg)
@@ -63,7 +63,7 @@ func receiveWs() {
 			commons.Bytes2Json([]byte(gzipMsg.String()), &rJson)
 
 			pingTs := rJson.(map[string]interface{})["ping"]
-			pingWs(pingTs)
+			pongWs(pingTs)
 		} else if strings.Contains(gzipMsg.String(), "tick") {
 			var rJson interface{}
 			commons.Bytes2Json([]byte(gzipMsg.String()), &rJson)

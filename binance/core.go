@@ -16,9 +16,9 @@ var (
 	exchange string
 )
 
-func pingWs() {
+func pongWs() {
 	for {
-		websocketmanager.Ping(exchange)
+		websocketmanager.Pong(exchange)
 		time.Sleep(time.Second * 5)
 	}
 }
@@ -84,9 +84,9 @@ func Run(e string) {
 
 	var wg sync.WaitGroup
 
-	// ping
+	// pong
 	wg.Add(1)
-	go pingWs()
+	go pongWs()
 
 	// subscribe websocket stream
 	wg.Add(1)

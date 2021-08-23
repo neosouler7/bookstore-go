@@ -18,7 +18,7 @@ var (
 	exchange string
 )
 
-func pingWs() {
+func pongWs() {
 	msg := "PING"
 	for {
 		websocketmanager.SendMsg(exchange, msg)
@@ -89,7 +89,7 @@ func Run(e string) {
 
 	// ping
 	wg.Add(1)
-	go pingWs()
+	go pongWs()
 
 	// subscribe websocket stream
 	wg.Add(1)
