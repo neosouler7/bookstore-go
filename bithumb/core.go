@@ -15,7 +15,8 @@ import (
 
 var (
 	exchange string
-	rJsonWs  map[string]interface{}
+	// rJsonWs  map[string]interface{}
+	syncMap sync.Map // to escape 'concurrent map read and map write' error
 )
 
 func subscribeWs(pairs interface{}) {
@@ -37,7 +38,7 @@ func subscribeWs(pairs interface{}) {
 
 func receiveWs(pairs interface{}) {
 	c := make(chan map[string]interface{})
-	rJsonWs = make(map[string]interface{})
+	// rJsonWs = make(map[string]interface{})
 
 	// rest for each pairs just once
 	for _, pair := range pairs.([]interface{}) {
@@ -49,7 +50,8 @@ func receiveWs(pairs interface{}) {
 		rJson := <-c
 		market := strings.ToLower(rJson["payment_currency"].(string))
 		symbol := strings.ToLower(rJson["order_currency"].(string))
-		rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
+		// rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
+		syncMap.Store(fmt.Sprintf("%s:%s", market, symbol), rJson)
 	}
 
 	// init websocket
@@ -72,8 +74,8 @@ func receiveWs(pairs interface{}) {
 			market := strings.ToLower(pairInfo[1])
 			symbol := strings.ToLower(pairInfo[0])
 			key := fmt.Sprintf("%s:%s", market, symbol)
-
-			if rJsonWs[key] == nil {
+			value, _ := syncMap.Load(key)
+			if value == nil {
 				fmt.Printf("pass ws of %s:%s since no rest value\n", market, symbol)
 			} else {
 				var obAsk []interface{}
@@ -84,8 +86,8 @@ func receiveWs(pairs interface{}) {
 					price, _ := strconv.ParseFloat(c.(map[string]interface{})["price"].(string), 64)
 					quantity := c.(map[string]interface{})["quantity"]
 
-					obAsk = rJsonWs[key].(map[string]interface{})["asks"].([]interface{})
-					obBid = rJsonWs[key].(map[string]interface{})["bids"].([]interface{})
+					obAsk = value.(map[string]interface{})["asks"].([]interface{})
+					obBid = value.(map[string]interface{})["bids"].([]interface{})
 					switch action {
 					case "ask": // ask price going up
 						min_price, _ := strconv.ParseFloat(obAsk[0].(map[string]interface{})["price"].(string), 64)
@@ -150,13 +152,13 @@ func receiveWs(pairs interface{}) {
 						obBidF = append(obBidF, obBid[i])
 					}
 				}
-				rJsonWs[key].(map[string]interface{})["asks"] = obAskF
-				rJsonWs[key].(map[string]interface{})["bids"] = obBidF
+				value.(map[string]interface{})["asks"] = obAskF
+				value.(map[string]interface{})["bids"] = obBidF
 
 				// update timestamp
-				rJsonWs[key].(map[string]interface{})["timestamp"] = ts
+				value.(map[string]interface{})["timestamp"] = ts
 
-				SetOrderbook("W", exchange, rJsonWs[key].(map[string]interface{}))
+				SetOrderbook("W", exchange, value.(map[string]interface{}))
 			}
 		}
 	}
@@ -176,7 +178,8 @@ func rest(pairs interface{}) {
 			rJson := <-c
 			market := strings.ToLower(rJson["payment_currency"].(string))
 			symbol := strings.ToLower(rJson["order_currency"].(string))
-			rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
+			// rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
+			syncMap.Store(fmt.Sprintf("%s:%s", market, symbol), rJson)
 			SetOrderbook("R", exchange, rJson)
 		}
 
