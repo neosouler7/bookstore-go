@@ -80,7 +80,7 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	req.URI().SetQueryString(queryString)
 
 	err := fastHttpClient().Do(req, res)
-	tgmanager.HandleErr(exchange, err, errHttpRequest)
+	tgmanager.HandleErr(exchange, err)
 
 	body, statusCode := res.Body(), res.StatusCode()
 	switch statusCode {

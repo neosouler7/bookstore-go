@@ -43,7 +43,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs() {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		tgmanager.HandleErr(exchange, err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(exchange, err)
 
 		gzip, err := gzip.NewReader(bytes.NewReader(msgBytes))
 		if err != nil {

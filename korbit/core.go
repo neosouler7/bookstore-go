@@ -50,7 +50,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs(pairs interface{}) {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		tgmanager.HandleErr(exchange, err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(string(msgBytes), "connected") {
 			subscribeWs(pairs) // just once

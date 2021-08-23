@@ -43,7 +43,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs() {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		tgmanager.HandleErr(exchange, err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(string(msgBytes), "result") {
 			fmt.Printf("BIN ws pass : %s\n", string(msgBytes))
