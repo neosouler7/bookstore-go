@@ -57,7 +57,7 @@ func receiveWs(pairs interface{}) {
 
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		tgmanager.HandleErr(err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(exchange, err, websocketmanager.ErrReadMsg)
 
 		if strings.Contains(string(msgBytes), "Successfully") {
 			fmt.Printf("%s\n", string(msgBytes))

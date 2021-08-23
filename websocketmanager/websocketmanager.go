@@ -33,7 +33,7 @@ func Conn(exchange string) *websocket.Conn {
 			host, path := getHostPath(exchange)
 			u := url.URL{Scheme: "wss", Host: host, Path: path}
 			wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-			tgmanager.HandleErr(err, errGetConn)
+			tgmanager.HandleErr(exchange, err, errGetConn)
 			w = wPointer
 		})
 	}
@@ -67,10 +67,10 @@ func getHostPath(exchange string) (string, string) {
 
 func SendMsg(exchange string, msg string) {
 	err := Conn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
-	tgmanager.HandleErr(err, errSendMsg)
+	tgmanager.HandleErr(exchange, err, errSendMsg)
 }
 
 func Pong(exchange string) {
 	err := Conn(exchange).WriteMessage(websocket.PongMessage, []byte{})
-	tgmanager.HandleErr(err, errSendMsg)
+	tgmanager.HandleErr(exchange, err, errSendMsg)
 }

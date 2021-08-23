@@ -47,7 +47,7 @@ func subscribeWs(pairs interface{}) {
 func receiveWs() {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		tgmanager.HandleErr(err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(exchange, err, websocketmanager.ErrReadMsg)
 
 		if strings.Contains(string(msgBytes), "status") {
 			fmt.Println("PONG") // {"status":"UP"}
