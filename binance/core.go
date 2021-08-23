@@ -16,9 +16,12 @@ var (
 	exchange string
 )
 
-// func pingWs() {
-
-// }
+func pingWs() {
+	for {
+		websocketmanager.Ping(exchange)
+		time.Sleep(time.Second * 5)
+	}
+}
 
 func subscribeWs(pairs interface{}) {
 	time.Sleep(time.Second * 1)
@@ -81,9 +84,9 @@ func Run(e string) {
 
 	var wg sync.WaitGroup
 
-	// [ping] no need of ping/pong?
-	// wg.Add(1)
-	// go pingWs(wsConn)
+	// ping
+	wg.Add(1)
+	go pingWs()
 
 	// subscribe websocket stream
 	wg.Add(1)

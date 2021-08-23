@@ -69,3 +69,8 @@ func SendMsg(exchange string, msg string) {
 	err := Conn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
 	tgmanager.HandleErr(err, errSendMsg)
 }
+
+func Ping(exchange string) {
+	err := Conn(exchange).WriteMessage(websocket.PingMessage, []byte{})
+	tgmanager.HandleErr(err, errSendMsg)
+}
