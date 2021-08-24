@@ -53,15 +53,13 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		bidResponse = rData.(map[string]interface{})["bids"].([]interface{})
 	}
 
-	if len(askResponse) == len(bidResponse) {
-		for i := range askResponse {
-			askR := askResponse[i].([]interface{})
-			bidR := bidResponse[i].([]interface{})
-			ask := [2]string{askR[0].(string), askR[1].(string)}
-			bid := [2]string{bidR[0].(string), bidR[1].(string)}
-			askSlice = append(askSlice, ask)
-			bidSlice = append(bidSlice, bid)
-		}
+	for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
+		askR := askResponse[i].([]interface{})
+		bidR := bidResponse[i].([]interface{})
+		ask := [2]string{askR[0].(string), askR[1].(string)}
+		bid := [2]string{bidR[0].(string), bidR[1].(string)}
+		askSlice = append(askSlice, ask)
+		bidSlice = append(bidSlice, bid)
 	}
 
 	redismanager.PreHandleOrderbook(

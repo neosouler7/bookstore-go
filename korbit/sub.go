@@ -30,30 +30,26 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		askResponse = rJson["asks"].([]interface{})
 		bidResponse = rJson["bids"].([]interface{})
 
-		if len(askResponse) == len(bidResponse) {
-			for i := range askResponse {
-				askR := askResponse[i].([]interface{})
-				bidR := bidResponse[i].([]interface{})
-				ask := [2]string{askR[0].(string), askR[1].(string)}
-				bid := [2]string{bidR[0].(string), bidR[1].(string)}
-				askSlice = append(askSlice, ask)
-				bidSlice = append(bidSlice, bid)
-			}
+		for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
+			askR := askResponse[i].([]interface{})
+			bidR := bidResponse[i].([]interface{})
+			ask := [2]string{askR[0].(string), askR[1].(string)}
+			bid := [2]string{bidR[0].(string), bidR[1].(string)}
+			askSlice = append(askSlice, ask)
+			bidSlice = append(bidSlice, bid)
 		}
 	case "W":
 		rData := rJson["data"]
 		askResponse = rData.(map[string]interface{})["asks"].([]interface{})
 		bidResponse = rData.(map[string]interface{})["bids"].([]interface{})
 
-		if len(askResponse) == len(bidResponse) {
-			for i := range askResponse {
-				askR := askResponse[i].(map[string]interface{})
-				bidR := bidResponse[i].(map[string]interface{})
-				ask := [2]string{askR["price"].(string), askR["amount"].(string)}
-				bid := [2]string{bidR["price"].(string), bidR["amount"].(string)}
-				askSlice = append(askSlice, ask)
-				bidSlice = append(bidSlice, bid)
-			}
+		for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
+			askR := askResponse[i].(map[string]interface{})
+			bidR := bidResponse[i].(map[string]interface{})
+			ask := [2]string{askR["price"].(string), askR["amount"].(string)}
+			bid := [2]string{bidR["price"].(string), bidR["amount"].(string)}
+			askSlice = append(askSlice, ask)
+			bidSlice = append(bidSlice, bid)
 		}
 	}
 

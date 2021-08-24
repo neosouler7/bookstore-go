@@ -8,6 +8,7 @@ import (
 	"github.com/neosouler7/bookstore-go/binance"
 	"github.com/neosouler7/bookstore-go/bithumb"
 	"github.com/neosouler7/bookstore-go/coinone"
+	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/huobikorea"
 	"github.com/neosouler7/bookstore-go/korbit"
 	"github.com/neosouler7/bookstore-go/tgmanager"
@@ -29,6 +30,12 @@ func main() {
 
 	exchange := flag.String("e", "", "Set exchange code to run")
 	flag.Parse()
+
+	tgmanager.InitBot(
+		commons.ReadConfig("Tg").(map[string]interface{})["token"].(string),
+		commons.ReadConfig("Tg").(map[string]interface{})["chat_ids"].([]interface{}),
+		commons.SetTimeZone("Tg"),
+	)
 
 	tgMsg := fmt.Sprintf("[bookstore-go] %s\n", *exchange)
 	switch *exchange {

@@ -39,7 +39,6 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	askResponse = rData.(map[string]interface{})["asks"].([]interface{})
 	bidResponse = rData.(map[string]interface{})["bids"].([]interface{})
 
-	// hbk does not guarantee ask/bid same length
 	for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
 		askR := askResponse[i].([]interface{})
 		bidR := bidResponse[i].([]interface{})

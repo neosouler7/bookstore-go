@@ -7,14 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neosouler7/bookstore-go/commons"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var (
-	token         = commons.ReadConfig("Tg").(map[string]interface{})["token"].(string)
-	chat_ids      = commons.ReadConfig("Tg").(map[string]interface{})["chat_ids"].([]interface{})
+	token         string
+	chat_ids      []interface{}
 	location      *time.Location
 	StampMicro    = "Jan _2 15:04:05.000000"
 	errGetBot     = errors.New("[ERROR] error on init tgBot")
@@ -25,8 +23,11 @@ var (
 var t *tgbotapi.BotAPI
 var once sync.Once
 
-func init() {
-	location = commons.SetTimeZone("tg")
+func InitBot(t string, c_ids []interface{}, l *time.Location) {
+	token = t
+	chat_ids = c_ids
+	location = l
+	Bot()
 }
 
 func Bot() *tgbotapi.BotAPI {
@@ -38,7 +39,6 @@ func Bot() *tgbotapi.BotAPI {
 			}
 			t = tgPointer
 			t.Debug = true
-
 		})
 	}
 	return t

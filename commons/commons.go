@@ -3,19 +3,14 @@ package commons
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-)
 
-var (
-	errReadConfig = errors.New("[ERROR] reading config")
-	errDecode     = errors.New("[ERROR] decoding")
+	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 type config struct {
@@ -46,9 +41,7 @@ func ReadConfig(key string) interface{} {
 
 	c := config{}
 	err := decoder.Decode(&c)
-	if err != nil {
-		log.Fatalln(errReadConfig)
-	}
+	tgmanager.HandleErr("ReadConfig", err)
 
 	return getAttr(&c, key).Interface()
 }
@@ -88,12 +81,15 @@ func GetObTargetPrice(volume string, orderbook interface{}) (string, error) {
 	*/
 	//
 	currentVolume := 0.0
-	targetVolume, _ := strconv.ParseFloat(volume, 64)
+	targetVolume, err := strconv.ParseFloat(volume, 64)
+	tgmanager.HandleErr("GetObTargetPrice", err)
 
 	obSlice := orderbook.([]interface{})
 	for _, ob := range obSlice {
 		obInfo := ob.([2]string)
-		volume, _ := strconv.ParseFloat(obInfo[1], 64)
+		volume, err := strconv.ParseFloat(obInfo[1], 64)
+		tgmanager.HandleErr("GetObTargetPrice", err)
+
 		currentVolume += volume
 		if currentVolume >= targetVolume {
 			return obInfo[0], nil
@@ -112,9 +108,7 @@ func Min(a, b int) int {
 func Bytes2Json(data []byte, i interface{}) {
 	r := bytes.NewReader(data)
 	err := json.NewDecoder(r).Decode(i)
-	if err != nil {
-		log.Fatalln(errDecode)
-	}
+	tgmanager.HandleErr("Bytes2Json", err)
 }
 
 func SetTimeZone(name string) *time.Location {
