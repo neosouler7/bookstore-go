@@ -83,48 +83,51 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	tgmanager.HandleErr(exchange, err)
 
 	body, statusCode := res.Body(), res.StatusCode()
-	switch statusCode {
-	case 200:
-		switch exchange {
-		case "upb":
-			var rJson []interface{}
-			commons.Bytes2Json(body, &rJson)
-
-			c <- rJson[0].(map[string]interface{})
-		case "con":
-			var rJson interface{}
-			commons.Bytes2Json(body, &rJson)
-
-			c <- rJson.(map[string]interface{})
-		case "bin":
-			var rJson interface{}
-			commons.Bytes2Json(body, &rJson)
-
-			// add market, symbol since no value on return
-			rJson.(map[string]interface{})["market"] = market
-			rJson.(map[string]interface{})["symbol"] = symbol
-			c <- rJson.(map[string]interface{})
-		case "kbt":
-			var rJson interface{}
-			commons.Bytes2Json(body, &rJson)
-
-			// add market, symbol since no value on return
-			rJson.(map[string]interface{})["market"] = market
-			rJson.(map[string]interface{})["symbol"] = symbol
-			c <- rJson.(map[string]interface{})
-		case "hbk":
-			var rJson interface{}
-			commons.Bytes2Json(body, &rJson)
-
-			c <- rJson.(map[string]interface{})
-		case "bmb":
-			var rJson interface{}
-			commons.Bytes2Json(body, &rJson)
-
-			c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
-		}
-	default:
-		fmt.Printf("%s restapi error with status: %d\n", exchange, statusCode)
+	if len(res.Body()) == 0 {
+		msg := fmt.Sprintf("%s empty response body\n", exchange)
+		tgmanager.HandleErr(msg, errHttpRequest)
+	}
+	if statusCode != fasthttp.StatusOK {
+		msg := fmt.Sprintf("%s restapi error with status: %d\n", exchange, statusCode)
+		tgmanager.HandleErr(msg, errHttpRequest)
 	}
 
+	switch exchange {
+	case "upb":
+		var rJson []interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson[0].(map[string]interface{})
+	case "con":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson.(map[string]interface{})
+	case "bin":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		// add market, symbol since no value on return
+		rJson.(map[string]interface{})["market"] = market
+		rJson.(map[string]interface{})["symbol"] = symbol
+		c <- rJson.(map[string]interface{})
+	case "kbt":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		// add market, symbol since no value on return
+		rJson.(map[string]interface{})["market"] = market
+		rJson.(map[string]interface{})["symbol"] = symbol
+		c <- rJson.(map[string]interface{})
+	case "hbk":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson.(map[string]interface{})
+	case "bmb":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
+	}
 }
