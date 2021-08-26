@@ -15,10 +15,11 @@ import (
 )
 
 var (
-	ctx                 = context.Background()
-	r                   *redis.Client
-	once                sync.Once
-	tsMap               map[string]int
+	ctx  = context.Background()
+	r    *redis.Client
+	once sync.Once
+	// tsMap               map[string]int
+	syncMap             sync.Map // to escape 'concurrent map read and map write' error
 	location            *time.Location
 	StampMicro          = "Jan _2 15:04:05.000000"
 	errGetObTargetPrice = errors.New("[ERROR] getting ob target price")
@@ -43,7 +44,7 @@ func client() *redis.Client {
 			_, err := r.Ping(ctx).Result()
 			tgmanager.HandleErr("redis", err)
 
-			tsMap = make(map[string]int)
+			// tsMap = make(map[string]int)
 		})
 	}
 	return r
@@ -90,13 +91,20 @@ func (ob *orderbook) setOrderbook(api string) {
 	key := fmt.Sprintf("ob:%sgo:%s:%s", ob.exchange, ob.market, ob.symbol)
 	value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
 
-	prevTs := tsMap[fmt.Sprintf("%s:%s", ob.market, ob.symbol)]
 	ts, _ := strconv.ParseInt(ob.ts, 10, 64)
-	timeGap := int(ts) - prevTs
+	// prevTs := tsMap[fmt.Sprintf("%s:%s", ob.market, ob.symbol)]
+	prevTs, ok := syncMap.Load(fmt.Sprintf("%s:%s", ob.market, ob.symbol))
+	if !ok {
+		fmt.Printf("REDIS init set of %s:%s\n", ob.market, ob.symbol)
+		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
+		prevTs = int(ts)
+	}
+	timeGap := int(ts) - prevTs.(int)
 	if timeGap > 0 {
 		err := client().Set(ctx, key, value, 0).Err()
 		tgmanager.HandleErr(ob.exchange, err)
-		tsMap[fmt.Sprintf("%s:%s", ob.market, ob.symbol)] = int(ts)
+		// tsMap[fmt.Sprintf("%s:%s", ob.market, ob.symbol)] = int(ts)
+		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
 		fmt.Printf("%s Set %s %s %4dms\n", now, api, key, timeGap)
 	} else {
 		fmt.Printf("%s >>> %s %s\n", now, api, key)
