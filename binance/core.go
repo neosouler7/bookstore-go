@@ -28,8 +28,7 @@ func subscribeWs(pairs interface{}) {
 	var streamSlice []string
 	for _, pair := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(pair.(string), ":")
-		var market = pairInfo[0]
-		var symbol = pairInfo[1]
+		market, symbol := pairInfo[0], pairInfo[1]
 
 		streamSlice = append(streamSlice, fmt.Sprintf("\"%s%s@depth20\"", symbol, market))
 	}
@@ -37,7 +36,7 @@ func subscribeWs(pairs interface{}) {
 	msg := fmt.Sprintf("{\"method\": \"SUBSCRIBE\",\"params\": [%s],\"id\": %d}", streams, time.Now().UnixNano()/100000)
 
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Println("BIN websocket subscribe msg sent!")
+	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
 }
 
 func receiveWs() {
@@ -46,7 +45,7 @@ func receiveWs() {
 		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(string(msgBytes), "result") {
-			fmt.Printf("BIN ws pass : %s\n", string(msgBytes))
+			fmt.Printf("%s ws pass : %s\n", exchange, string(msgBytes))
 		} else {
 			var rJson interface{}
 			commons.Bytes2Json(msgBytes, &rJson)

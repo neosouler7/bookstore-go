@@ -123,3 +123,18 @@ func SetTimeZone(name string) *time.Location {
 	location, _ := time.LoadLocation(tz)
 	return location
 }
+
+func GetPairMap(exchange string) map[string]interface{} {
+	var pairs = ReadConfig("Pairs").(map[string]interface{})[exchange]
+
+	pairInterface := make(map[string]interface{})
+	for _, pair := range pairs.([]interface{}) {
+		var pairInfo = strings.Split(pair.(string), ":")
+		var market = pairInfo[0]
+		var symbol = pairInfo[1]
+
+		pairInterface[fmt.Sprintf("%s%s", symbol, market)] = map[string]string{"market": market, "symbol": symbol}
+	}
+
+	return pairInterface
+}

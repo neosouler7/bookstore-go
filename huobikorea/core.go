@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -20,22 +19,20 @@ var (
 	exchange string
 )
 
-func pongWs(ts interface{}) {
-	msg := fmt.Sprintf("{\"pong\":%d}", int(ts.(float64)))
+func pongWs(msg string) {
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Printf("HBK PONG %s\n", msg)
+	fmt.Printf("%s PONG %s\n", exchange, msg)
 }
 
 func subscribeWs(pairs interface{}) {
 	time.Sleep(time.Second * 1)
 	for _, pair := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(pair.(string), ":")
-		var market = strings.ToLower(pairInfo[0])
-		var symbol = strings.ToLower(pairInfo[1])
+		market, symbol := strings.ToLower(pairInfo[0]), strings.ToLower(pairInfo[1])
 
 		msg := fmt.Sprintf("{\"sub\": \"market.%s%s.depth.step0\"}", symbol, market)
 		websocketmanager.SendMsg(exchange, msg)
-		fmt.Println("HBK websocket subscribe msg sent!")
+		fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
 	}
 
 }
@@ -46,31 +43,23 @@ func receiveWs() {
 		tgmanager.HandleErr(exchange, err)
 
 		gzip, err := gzip.NewReader(bytes.NewReader(msgBytes))
-		if err != nil {
-			log.Fatalln(err)
-		}
+		tgmanager.HandleErr(exchange, err)
 
 		gzipMsg := new(strings.Builder)
 		_, err = io.Copy(gzipMsg, gzip)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(gzipMsg.String(), "subbed") {
 			continue
 		} else if strings.Contains(gzipMsg.String(), "ping") {
-			var rJson interface{}
-			commons.Bytes2Json([]byte(gzipMsg.String()), &rJson)
-
-			pingTs := rJson.(map[string]interface{})["ping"]
-			pongWs(pingTs)
+			pongWs(strings.Replace(gzipMsg.String(), "ping", "pong", -1))
 		} else if strings.Contains(gzipMsg.String(), "tick") {
 			var rJson interface{}
 			commons.Bytes2Json([]byte(gzipMsg.String()), &rJson)
 
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {
-			log.Fatalln(gzipMsg.String())
+			tgmanager.HandleErr(exchange, websocketmanager.ErrReadMsg)
 		}
 	}
 }

@@ -10,11 +10,9 @@ import (
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	var market, symbol, ts string
-
 	switch api {
 	case "R":
-		market = rJson["market"].(string)
-		symbol = rJson["symbol"].(string)
+		market, symbol = rJson["market"].(string), rJson["symbol"].(string)
 		ts = commons.FormatTs(fmt.Sprintf("%f", rJson["timestamp"].(float64)))
 	case "W":
 		market = strings.Split(rJson["data"].(map[string]interface{})["currency_pair"].(string), "_")[1]
@@ -24,15 +22,13 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 
 	var askResponse, bidResponse []interface{}
 	var askSlice, bidSlice []interface{}
-
 	switch api {
 	case "R":
 		askResponse = rJson["asks"].([]interface{})
 		bidResponse = rJson["bids"].([]interface{})
 
 		for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
-			askR := askResponse[i].([]interface{})
-			bidR := bidResponse[i].([]interface{})
+			askR, bidR := askResponse[i].([]interface{}), bidResponse[i].([]interface{})
 			ask := [2]string{askR[0].(string), askR[1].(string)}
 			bid := [2]string{bidR[0].(string), bidR[1].(string)}
 			askSlice = append(askSlice, ask)
@@ -44,8 +40,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		bidResponse = rData.(map[string]interface{})["bids"].([]interface{})
 
 		for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
-			askR := askResponse[i].(map[string]interface{})
-			bidR := bidResponse[i].(map[string]interface{})
+			askR, bidR := askResponse[i].(map[string]interface{}), bidResponse[i].(map[string]interface{})
 			ask := [2]string{askR["price"].(string), askR["amount"].(string)}
 			bid := [2]string{bidR["price"].(string), bidR["amount"].(string)}
 			askSlice = append(askSlice, ask)

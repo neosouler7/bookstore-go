@@ -2,7 +2,6 @@ package korbit
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -17,24 +16,12 @@ var (
 	exchange string
 )
 
-// func pingWs(wsConn *websocket.Conn) {
-// 	msg := "PING"
-// 	for {
-// 		err := websocketmanager.SendMsg(wsConn, msg)
-// 		if err != nil {
-// 			log.Fatalln(err)
-// 		}
-// 		time.Sleep(time.Second * 5)
-// 	}
-// }
-
 func subscribeWs(pairs interface{}) {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
 	for _, pair := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(pair.(string), ":")
-		var market = strings.ToLower(pairInfo[0])
-		var symbol = strings.ToLower(pairInfo[1])
+		market, symbol := strings.ToLower(pairInfo[0]), strings.ToLower(pairInfo[1])
 
 		streamSlice = append(streamSlice, fmt.Sprintf("%s_%s", symbol, market))
 	}
@@ -44,7 +31,7 @@ func subscribeWs(pairs interface{}) {
 	msg := fmt.Sprintf("{\"accessToken\": \"null\", \"timestamp\": \"%d\", \"event\": \"korbit:subscribe\", \"data\": {\"channels\": [%s]}}", ts, streams)
 
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Println("KBT websocket subscribe msg sent!")
+	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
 }
 
 func receiveWs(pairs interface{}) {
@@ -61,7 +48,7 @@ func receiveWs(pairs interface{}) {
 			commons.Bytes2Json(msgBytes, &rJson)
 			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {
-			log.Fatalln(string(msgBytes))
+			tgmanager.HandleErr(exchange, websocketmanager.ErrReadMsg)
 		}
 	}
 }
@@ -93,18 +80,6 @@ func Run(e string) {
 	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
 
 	var wg sync.WaitGroup
-
-	// [ping]
-	// wg.Add(1)
-	// go pingWs(wsConn)
-
-	// [subscribe websocket stream]
-	// send subscribe msg on receiveWs
-	// wg.Add(1)
-	// go func() {
-	// 	subscribeWs(wsConn, pairs)
-	// 	wg.Done()
-	// }()
 
 	// receive websocket msg
 	wg.Add(1)

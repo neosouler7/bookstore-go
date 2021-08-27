@@ -31,8 +31,7 @@ func subscribeWs(pairs interface{}) {
 	var streamSlice []string
 	for _, pair := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(pair.(string), ":")
-		var market = strings.ToUpper(pairInfo[0])
-		var symbol = strings.ToUpper(pairInfo[1])
+		market, symbol := strings.ToUpper(pairInfo[0]), strings.ToUpper(pairInfo[1])
 
 		streamSlice = append(streamSlice, fmt.Sprintf("'%s-%s'", market, symbol))
 	}

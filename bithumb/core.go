@@ -15,8 +15,7 @@ import (
 
 var (
 	exchange string
-	// rJsonWs  map[string]interface{}
-	syncMap sync.Map // to escape 'concurrent map read and map write' error
+	syncMap  sync.Map
 )
 
 func subscribeWs(pairs interface{}) {
@@ -24,8 +23,7 @@ func subscribeWs(pairs interface{}) {
 	var streamSlice []string
 	for _, pair := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(pair.(string), ":")
-		var market = strings.ToUpper(pairInfo[0])
-		var symbol = strings.ToUpper(pairInfo[1])
+		market, symbol := strings.ToUpper(pairInfo[0]), strings.ToUpper(pairInfo[1])
 
 		streamSlice = append(streamSlice, fmt.Sprintf("\"%s_%s\"", symbol, market))
 	}
@@ -33,12 +31,11 @@ func subscribeWs(pairs interface{}) {
 	msg := fmt.Sprintf("{\"type\": \"orderbookdepth\",\"symbols\": [%s]}", streams)
 
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Println("BMB websocket subscribe msg sent!")
+	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
 }
 
 func receiveWs(pairs interface{}) {
 	c := make(chan map[string]interface{})
-	// rJsonWs = make(map[string]interface{})
 
 	// rest for each pairs just once
 	for _, pair := range pairs.([]interface{}) {
@@ -50,7 +47,6 @@ func receiveWs(pairs interface{}) {
 		rJson := <-c
 		market := strings.ToLower(rJson["payment_currency"].(string))
 		symbol := strings.ToLower(rJson["order_currency"].(string))
-		// rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
 		syncMap.Store(fmt.Sprintf("%s:%s", market, symbol), rJson)
 	}
 
@@ -71,15 +67,13 @@ func receiveWs(pairs interface{}) {
 			ts := content.(map[string]interface{})["datetime"].(string)
 			changed := content.(map[string]interface{})["list"].([]interface{})
 			pairInfo := strings.Split(changed[0].(map[string]interface{})["symbol"].(string), "_")
-			market := strings.ToLower(pairInfo[1])
-			symbol := strings.ToLower(pairInfo[0])
+			market, symbol := strings.ToLower(pairInfo[1]), strings.ToLower(pairInfo[0])
 			key := fmt.Sprintf("%s:%s", market, symbol)
 			value, _ := syncMap.Load(key)
 			if value == nil {
 				fmt.Printf("pass ws of %s:%s since no rest value\n", market, symbol)
 			} else {
-				var obAsk []interface{}
-				var obBid []interface{}
+				var obAsk, obBid []interface{}
 
 				for _, c := range changed {
 					action := c.(map[string]interface{})["orderType"]
@@ -176,9 +170,7 @@ func rest(pairs interface{}) {
 
 		for i := 0; i < len(pairs.([]interface{})); i++ {
 			rJson := <-c
-			market := strings.ToLower(rJson["payment_currency"].(string))
-			symbol := strings.ToLower(rJson["order_currency"].(string))
-			// rJsonWs[fmt.Sprintf("%s:%s", market, symbol)] = rJson
+			market, symbol := strings.ToLower(rJson["payment_currency"].(string)), strings.ToLower(rJson["order_currency"].(string))
 			syncMap.Store(fmt.Sprintf("%s:%s", market, symbol), rJson)
 			SetOrderbook("R", exchange, rJson)
 		}
