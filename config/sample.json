@@ -9,6 +9,12 @@
         "token": "",
         "chat_ids": []
     },
+    "ApiKey": {
+        "gpx": {
+            "public": "",
+            "secret": ""
+        }
+    },
     "RateLimit": {
         "buffer": 1.2,
         "bin": 20,

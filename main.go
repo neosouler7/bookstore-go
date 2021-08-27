@@ -9,6 +9,7 @@ import (
 	"github.com/neosouler7/bookstore-go/bithumb"
 	"github.com/neosouler7/bookstore-go/coinone"
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/gopax"
 	"github.com/neosouler7/bookstore-go/huobikorea"
 	"github.com/neosouler7/bookstore-go/korbit"
 	"github.com/neosouler7/bookstore-go/tgmanager"
@@ -38,26 +39,23 @@ func main() {
 	)
 
 	tgMsg := fmt.Sprintf("[bookstore-go] %s\n", *exchange)
+	tgmanager.SendMsg(tgMsg)
 	switch *exchange {
 	default:
 		usage()
-	case "upb":
-		tgmanager.SendMsg(tgMsg)
-		upbit.Run(*exchange)
-	case "con":
-		tgmanager.SendMsg(tgMsg)
-		coinone.Run(*exchange)
 	case "bin":
-		tgmanager.SendMsg(tgMsg)
 		binance.Run(*exchange)
-	case "kbt":
-		tgmanager.SendMsg(tgMsg)
-		korbit.Run(*exchange)
-	case "hbk":
-		tgmanager.SendMsg(tgMsg)
-		huobikorea.Run(*exchange)
 	case "bmb":
-		tgmanager.SendMsg(tgMsg)
 		bithumb.Run(*exchange)
+	case "con":
+		coinone.Run(*exchange)
+	case "gpx":
+		gopax.Run(*exchange)
+	case "hbk":
+		huobikorea.Run(*exchange)
+	case "kbt":
+		korbit.Run(*exchange)
+	case "upb":
+		upbit.Run(*exchange)
 	}
 }

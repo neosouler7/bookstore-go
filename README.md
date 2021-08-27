@@ -12,7 +12,8 @@
 - 바이낸스: bin (RESTful, Websocket)
 - 코빗: kbt (RESTful, Websocket)
 - 후오비코리아: hbk (RESTful, Websocket)
-- 빗썸: bmb (RESTful)
+- 빗썸: bmb (RESTful, Websocket)
+- 고팍스: gpx (RESTful, Websocket)
   > 코인원 Websocket의 경우 코인원 VIP 선정 되어야 사용 가능
 
 ## 실행 방법

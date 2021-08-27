@@ -16,6 +16,7 @@ import (
 type config struct {
 	Redis     map[string]interface{}
 	Tg        map[string]interface{}
+	ApiKey    map[string]interface{}
 	RateLimit map[string]interface{}
 	Pairs     map[string]interface{}
 }
