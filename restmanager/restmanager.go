@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	errHttpRequest = errors.New("[ERROR] http request")
+	errHttpRequest = errors.New("http request")
 )
 
 const (
@@ -69,8 +69,7 @@ func getEndpointQuerystring(exchange string, market string, symbol string) (stri
 
 func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
 	var pairInfo = strings.Split(pair, ":")
-	var market = pairInfo[0]
-	var symbol = pairInfo[1]
+	market, symbol := pairInfo[0], pairInfo[1]
 	endPoint, queryString := getEndpointQuerystring(exchange, market, symbol)
 
 	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
