@@ -87,8 +87,7 @@ func newOrderbook(exchange string, market string, symbol string, askPrice string
 func (ob *orderbook) setOrderbook(api string) {
 	now := time.Now().In(location).Format(StampMicro)
 
-	// key := fmt.Sprintf("ob-go:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
-	key := fmt.Sprintf("ob:%sgo:%s:%s", ob.exchange, ob.market, ob.symbol)
+	key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
 	value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
 
 	ts, _ := strconv.ParseInt(ob.ts, 10, 64)

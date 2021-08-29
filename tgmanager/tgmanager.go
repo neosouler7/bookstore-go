@@ -15,9 +15,9 @@ var (
 	chat_ids      []interface{}
 	location      *time.Location
 	StampMicro    = "Jan _2 15:04:05.000000"
-	errGetBot     = errors.New("[ERROR] error on init tgBot")
-	errSendMsg    = errors.New("[ERROR] error on sendMsg")
-	errGetUpdates = errors.New("[ERROR] error on get updates")
+	errGetBot     = errors.New("tg init failed")
+	errSendMsg    = errors.New("tg sendMsg failed")
+	errGetUpdates = errors.New("tg getUpdated failed")
 )
 
 var t *tgbotapi.BotAPI
@@ -27,7 +27,6 @@ func InitBot(t string, c_ids []interface{}, l *time.Location) {
 	token = t
 	chat_ids = c_ids
 	location = l
-	Bot()
 }
 
 func Bot() *tgbotapi.BotAPI {

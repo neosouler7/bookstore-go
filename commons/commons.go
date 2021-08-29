@@ -27,7 +27,7 @@ func getAttr(obj interface{}, fieldName string) reflect.Value {
 	if curStruct.Kind() != reflect.Struct {
 		panic("not struct")
 	}
-	curField := curStruct.FieldByName(fieldName) // type: reflect.Value
+	curField := curStruct.FieldByName(fieldName)
 	if !curField.IsValid() {
 		panic("not found:" + fieldName)
 	}
@@ -60,13 +60,10 @@ func FormatTs(ts string) string {
 
 func GetTargetVolumeMap(exchange string) map[string]string {
 	volumeMap := make(map[string]string)
-
 	pairs := ReadConfig("Pairs").(map[string]interface{})[exchange]
 	for _, p := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(p.(string), ":")
-		var market = pairInfo[0]
-		var symbol = pairInfo[1]
-		var targetVolume = pairInfo[2]
+		market, symbol, targetVolume := pairInfo[0], pairInfo[1], pairInfo[2]
 
 		volumeMap[market+":"+symbol] = targetVolume
 	}
@@ -126,15 +123,11 @@ func SetTimeZone(name string) *time.Location {
 
 func GetPairMap(exchange string) map[string]interface{} {
 	var pairs = ReadConfig("Pairs").(map[string]interface{})[exchange]
-
 	pairInterface := make(map[string]interface{})
 	for _, pair := range pairs.([]interface{}) {
 		var pairInfo = strings.Split(pair.(string), ":")
-		var market = pairInfo[0]
-		var symbol = pairInfo[1]
-
+		market, symbol := pairInfo[0], pairInfo[1]
 		pairInterface[fmt.Sprintf("%s%s", symbol, market)] = map[string]string{"market": market, "symbol": symbol}
 	}
-
 	return pairInterface
 }
