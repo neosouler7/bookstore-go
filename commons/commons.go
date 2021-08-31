@@ -48,6 +48,17 @@ func ReadConfig(key string) interface{} {
 }
 
 func FormatTs(ts string) string {
+	// if len(ts) == 13 { // to millisecond
+	// 	return ts
+	// } else {
+	// 	unixIntValue, err := strconv.ParseInt(ts, 10, 64)
+	// 	if err != nil {
+	// 		log.Fatalln(err)
+	// 	}
+	// 	convertedTime := time.Unix(unixIntValue, 0)
+	// 	fmt.Println(convertedTime)
+	// 	return fmt.Sprintf("%d", convertedTime.UnixMilli())
+	// }
 	if len(ts) <= 13 {
 		add := strings.Repeat("0", 13-len(ts))
 		return fmt.Sprintf("%s%s", ts, add)
