@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -55,12 +54,13 @@ func FormatTs(ts string) string {
 	} else if len(ts) == 13 { // if millisecond
 		return ts
 	} else {
-		tm, err := strconv.ParseInt(ts[:13], 10, 64)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		convertedTime := time.Unix(0, tm*int64(time.Millisecond))
-		return fmt.Sprintf("%d", convertedTime.UnixMilli()) // to millisecond
+		return ts[:13]
+		// tm, err := strconv.ParseInt(ts[:13], 10, 64)
+		// if err != nil {
+		// 	log.Fatalln(err)
+		// }
+		// convertedTime := time.Unix(0, tm*int64(time.Millisecond))
+		// return fmt.Sprintf("%d", convertedTime.UnixMilli()) // to millisecond
 	}
 }
 
