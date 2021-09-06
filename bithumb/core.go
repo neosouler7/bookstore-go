@@ -189,8 +189,9 @@ func Run(e string) {
 	var wg sync.WaitGroup
 
 	// bmb returns CHANGED orderbooks
-	wg.Add(1)
-	go receiveWs(pairs)
+	// temp WS remove
+	// wg.Add(1)
+	// go receiveWs(pairs)
 
 	wg.Add(1)
 	go rest(pairs)
