@@ -9,6 +9,7 @@ import (
 	"github.com/neosouler7/bookstore-go/bithumb"
 	"github.com/neosouler7/bookstore-go/coinone"
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/config"
 	"github.com/neosouler7/bookstore-go/gopax"
 	"github.com/neosouler7/bookstore-go/huobikorea"
 	"github.com/neosouler7/bookstore-go/korbit"
@@ -32,7 +33,7 @@ func main() {
 	exchange := flag.String("e", "", "Set exchange code to run")
 	flag.Parse()
 
-	tgConfig := commons.ReadConfig("Tg").(commons.TgConfig)
+	tgConfig := config.GetTg()
 	tgmanager.InitBot(
 		tgConfig.Token,
 		tgConfig.Chat_ids,

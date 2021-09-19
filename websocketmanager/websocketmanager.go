@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/config"
 	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
@@ -40,9 +41,8 @@ func Conn(exchange string) *websocket.Conn {
 			host, path := getHostPath(exchange)
 			u := url.URL{Scheme: "wss", Host: host, Path: path}
 			if exchange == "gpx" {
-				keyMap := commons.ReadConfig("ApiKey").(map[string]interface{})[exchange]
-				publicKey := keyMap.(map[string]interface{})["public"].(string)
-				secretKey := keyMap.(map[string]interface{})["secret"].(string)
+				apiKey := config.GetApiKey(exchange)
+				publicKey, secretKey := apiKey.Public, apiKey.Secret
 
 				ts := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
 				key, _ := base64.StdEncoding.DecodeString(secretKey)

@@ -5,78 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/neosouler7/bookstore-go/config"
 	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
-type RedisConfig struct {
-	Host string
-	Port string
-	Pwd  string
-	Db   int
-}
-
-type TgConfig struct {
-	Token    string
-	Chat_ids []int
-}
-
-type config struct {
-	Redis     RedisConfig
-	Tg        TgConfig
-	ApiKey    map[string]interface{}
-	RateLimit map[string]interface{}
-	Pairs     map[string]interface{}
-}
-
-func getAttr(obj interface{}, fieldName string) reflect.Value {
-	curStruct := reflect.ValueOf(obj).Elem()
-	if curStruct.Kind() != reflect.Struct {
-		panic("not struct")
-	}
-	curField := curStruct.FieldByName(fieldName)
-	if !curField.IsValid() {
-		panic("not found:" + fieldName)
-	}
-	return curField
-}
-
-func ReadConfig(key string) interface{} {
-	path, _ := os.Getwd()
-	file, _ := os.Open(path + "/config/config.json")
-	defer file.Close()
-
-	c := config{}
-	tgmanager.HandleErr("ReadConfig", json.NewDecoder(file).Decode(&c))
-	return getAttr(&c, key).Interface()
-}
-
-func FormatTs(ts string) string {
-	if len(ts) < 13 {
-		add := strings.Repeat("0", 13-len(ts))
-		return fmt.Sprintf("%s%s", ts, add)
-	} else if len(ts) == 13 { // if millisecond
-		return ts
-	} else {
-		return ts[:13]
-		// tm, err := strconv.ParseInt(ts[:13], 10, 64)
-		// if err != nil {
-		// 	log.Fatalln(err)
-		// }
-		// convertedTime := time.Unix(0, tm*int64(time.Millisecond))
-		// return fmt.Sprintf("%d", convertedTime.UnixMilli()) // to millisecond
-	}
-}
-
 func GetTargetVolumeMap(exchange string) map[string]string {
 	volumeMap := make(map[string]string)
-	pairs := ReadConfig("Pairs").(map[string]interface{})[exchange]
-	for _, p := range pairs.([]interface{}) {
-		var pairInfo = strings.Split(p.(string), ":")
+	pairs := config.GetPairs(exchange)
+	for _, p := range pairs {
+		var pairInfo = strings.Split(p, ":")
 		market, symbol, targetVolume := pairInfo[0], pairInfo[1], pairInfo[2]
 
 		volumeMap[market+":"+symbol] = targetVolume
@@ -110,6 +51,23 @@ func GetObTargetPrice(volume string, orderbook interface{}) (string, error) {
 	return obSlice[len(obSlice)-1].([2]string)[0], nil
 }
 
+func FormatTs(ts string) string {
+	if len(ts) < 13 {
+		add := strings.Repeat("0", 13-len(ts))
+		return fmt.Sprintf("%s%s", ts, add)
+	} else if len(ts) == 13 { // if millisecond
+		return ts
+	} else {
+		return ts[:13]
+		// tm, err := strconv.ParseInt(ts[:13], 10, 64)
+		// if err != nil {
+		// 	log.Fatalln(err)
+		// }
+		// convertedTime := time.Unix(0, tm*int64(time.Millisecond))
+		// return fmt.Sprintf("%d", convertedTime.UnixMilli()) // to millisecond
+	}
+}
+
 func Min(a, b int) int {
 	if a < b {
 		return a
@@ -136,10 +94,10 @@ func SetTimeZone(name string) *time.Location {
 }
 
 func GetPairMap(exchange string) map[string]interface{} {
-	var pairs = ReadConfig("Pairs").(map[string]interface{})[exchange]
+	var pairs = config.GetPairs(exchange)
 	pairInterface := make(map[string]interface{})
-	for _, pair := range pairs.([]interface{}) {
-		var pairInfo = strings.Split(pair.(string), ":")
+	for _, pair := range pairs {
+		var pairInfo = strings.Split(pair, ":")
 		market, symbol := pairInfo[0], pairInfo[1]
 		pairInterface[fmt.Sprintf("%s%s", symbol, market)] = map[string]string{"market": market, "symbol": symbol}
 	}

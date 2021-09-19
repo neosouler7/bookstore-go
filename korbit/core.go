@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/config"
 	"github.com/neosouler7/bookstore-go/restmanager"
 	"github.com/neosouler7/bookstore-go/tgmanager"
 	"github.com/neosouler7/bookstore-go/websocketmanager"
@@ -16,11 +17,11 @@ var (
 	exchange string
 )
 
-func subscribeWs(pairs interface{}) {
+func subscribeWs(pairs []string) {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
-	for _, pair := range pairs.([]interface{}) {
-		var pairInfo = strings.Split(pair.(string), ":")
+	for _, pair := range pairs {
+		var pairInfo = strings.Split(pair, ":")
 		market, symbol := strings.ToLower(pairInfo[0]), strings.ToLower(pairInfo[1])
 
 		streamSlice = append(streamSlice, fmt.Sprintf("%s_%s", symbol, market))
@@ -34,7 +35,7 @@ func subscribeWs(pairs interface{}) {
 	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
 }
 
-func receiveWs(pairs interface{}) {
+func receiveWs(pairs []string) {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 		tgmanager.HandleErr(exchange, err)
@@ -53,31 +54,30 @@ func receiveWs(pairs interface{}) {
 	}
 }
 
-func rest(pairs interface{}) {
+func rest(pairs []string) {
 	c := make(chan map[string]interface{})
-	var rateLimit = commons.ReadConfig("RateLimit").(map[string]interface{})[exchange].(float64)
-	var buffer = commons.ReadConfig("RateLimit").(map[string]interface{})["buffer"].(float64)
+	buffer, rateLimit := config.GetRateLimit(exchange)
 
 	for {
-		for _, pair := range pairs.([]interface{}) {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair.(string))
+		for _, pair := range pairs {
+			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
 		}
 
-		for i := 0; i < len(pairs.([]interface{})); i++ {
+		for i := 0; i < len(pairs); i++ {
 			rJson := <-c
 			SetOrderbook("R", exchange, rJson)
 		}
 
 		// 1번에 (1s / rateLimit)s 만큼 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
 		// ex) 1 / 10 s * 2 = 0.2s => 200ms
-		pairsLength := float64(len(pairs.([]interface{}))) * buffer
+		pairsLength := float64(len(pairs)) * buffer
 		time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
 	}
 }
 
 func Run(e string) {
 	exchange = e
-	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
+	var pairs = config.GetPairs(exchange)
 
 	var wg sync.WaitGroup
 

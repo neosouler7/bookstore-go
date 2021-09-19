@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/config"
 	"github.com/neosouler7/bookstore-go/tgmanager"
 
 	"github.com/go-redis/redis/v8"
@@ -29,7 +30,7 @@ func init() {
 func client() *redis.Client {
 	if r == nil {
 		once.Do(func() {
-			redisConfig := commons.ReadConfig("Redis").(commons.RedisConfig)
+			redisConfig := config.GetRedis()
 			r = redis.NewClient(&redis.Options{
 				Addr:     fmt.Sprintf("%s:%s", redisConfig.Host, redisConfig.Port),
 				Password: redisConfig.Pwd,
