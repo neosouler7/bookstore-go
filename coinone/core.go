@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -16,15 +17,14 @@ import (
 )
 
 var (
-	errResponseEncoding = errors.New("[ERROR] response encoding")
-	errWSRequest        = errors.New("[ERROR] ws request")
-	exchange            string
+	errWSRequest = errors.New("[ERROR] ws request")
+	exchange     string
+	pingMsg      string = "{\"requestType\": \"PING\"}"
 )
 
 func pongWs() {
-	msg := "{\"requestType\": \"PING\"}"
 	for {
-		websocketmanager.SendMsg(exchange, msg)
+		websocketmanager.SendMsg(exchange, pingMsg)
 		time.Sleep(time.Second * 5)
 	}
 }
@@ -39,7 +39,7 @@ func subscribeWs(pairs []string) {
 		msg := "{\"requestType\": \"SUBSCRIBE\", \"body\": {\"channel\": \"ORDERBOOK\", \"topic\": {\"priceCurrency\": \"" + strings.ToUpper(market) + "\", \"productCurrency\": \"" + strings.ToUpper(symbol) + "\", \"group\": \"EXPANDED\", \"size\": 30}}}"
 		websocketmanager.SendMsg(exchange, msg)
 	}
-	fmt.Println("CON websocket subscribe msg sent!")
+	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
 func receiveWs() {
@@ -55,7 +55,7 @@ func receiveWs() {
 		switch responseType {
 		default:
 			fmt.Printf("coinone unknown %s\n", responseType)
-			log.Fatalln(errWSRequest)
+			os.Exit(0)
 		case "ERROR":
 			responseErrCode := rJson["errorCode"]
 			responseErrMsg := rJson["message"]

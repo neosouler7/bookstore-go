@@ -32,7 +32,7 @@ func subscribeWs(pairs []string) {
 	msg := fmt.Sprintf("{\"accessToken\": \"null\", \"timestamp\": \"%d\", \"event\": \"korbit:subscribe\", \"data\": {\"channels\": [%s]}}", ts, streams)
 
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
+	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
 func receiveWs(pairs []string) {

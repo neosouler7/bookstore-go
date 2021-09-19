@@ -42,7 +42,7 @@ func subscribeWs(pairs []string) {
 		})
 		websocketmanager.SendMsg(exchange, string(jsonBytes))
 	}
-	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
+	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
 func receiveWs() {

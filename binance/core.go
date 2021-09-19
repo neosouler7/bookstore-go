@@ -37,7 +37,7 @@ func subscribeWs(pairs []string) {
 	msg := fmt.Sprintf("{\"method\": \"SUBSCRIBE\",\"params\": [%s],\"id\": %d}", streams, time.Now().UnixNano()/100000)
 
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
+	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
 func receiveWs() {
@@ -46,7 +46,7 @@ func receiveWs() {
 		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(string(msgBytes), "result") {
-			fmt.Printf("%s ws pass : %s\n", exchange, string(msgBytes))
+			fmt.Printf(websocketmanager.FilteredMsg, exchange, string(msgBytes))
 		} else {
 			var rJson interface{}
 			commons.Bytes2Json(msgBytes, &rJson)

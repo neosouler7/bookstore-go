@@ -41,23 +41,29 @@ func main() {
 	)
 
 	tgMsg := fmt.Sprintf("[bookstore-go] %s\n", *exchange)
-	tgmanager.SendMsg(tgMsg)
 	switch *exchange {
 	default:
 		usage()
 	case "bin":
+		tgmanager.SendMsg(tgMsg)
 		binance.Run(*exchange)
 	case "bmb":
+		tgmanager.SendMsg(tgMsg)
 		bithumb.Run(*exchange)
 	case "con":
+		tgmanager.SendMsg(tgMsg)
 		coinone.Run(*exchange)
 	case "gpx":
+		tgmanager.SendMsg(tgMsg)
 		gopax.Run(*exchange)
 	case "hbk":
+		tgmanager.SendMsg(tgMsg)
 		huobikorea.Run(*exchange)
 	case "kbt":
+		tgmanager.SendMsg(tgMsg)
 		korbit.Run(*exchange)
 	case "upb":
+		tgmanager.SendMsg(tgMsg)
 		upbit.Run(*exchange)
 	}
 }

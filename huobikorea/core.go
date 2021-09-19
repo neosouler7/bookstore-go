@@ -33,7 +33,7 @@ func subscribeWs(pairs []string) {
 
 		msg := fmt.Sprintf("{\"sub\": \"market.%s%s.depth.step0\"}", symbol, market)
 		websocketmanager.SendMsg(exchange, msg)
-		fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
+		fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 	}
 
 }

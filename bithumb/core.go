@@ -32,7 +32,7 @@ func subscribeWs(pairs []string) {
 	msg := fmt.Sprintf("{\"type\": \"orderbookdepth\",\"symbols\": [%s]}", streams)
 
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Printf("%s websocket subscribe msg sent!\n", exchange)
+	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
 func receiveWs(pairs []string) {
@@ -59,7 +59,7 @@ func receiveWs(pairs []string) {
 		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(string(msgBytes), "Successfully") {
-			fmt.Printf("%s\n", string(msgBytes))
+			fmt.Printf(websocketmanager.FilteredMsg, exchange, string(msgBytes))
 		} else if strings.Contains(string(msgBytes), "orderbookdepth") {
 			var rJson interface{}
 			commons.Bytes2Json(msgBytes, &rJson)
