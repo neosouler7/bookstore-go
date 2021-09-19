@@ -11,28 +11,30 @@ import (
 )
 
 var (
-	token         string
-	chat_ids      []interface{}
-	location      *time.Location
 	StampMicro    = "Jan _2 15:04:05.000000"
 	errGetBot     = errors.New("tg init failed")
 	errSendMsg    = errors.New("tg sendMsg failed")
 	errGetUpdates = errors.New("tg getUpdated failed")
 )
 
-var t *tgbotapi.BotAPI
-var once sync.Once
-
-func InitBot(t string, c_ids []interface{}, l *time.Location) {
-	token = t
-	chat_ids = c_ids
-	location = l
+type bot struct {
+	token    string
+	chat_ids []int
+	location *time.Location
 }
 
-func Bot() *tgbotapi.BotAPI {
+var t *tgbotapi.BotAPI
+var once sync.Once
+var b bot
+
+func InitBot(t string, c_ids []int, l *time.Location) {
+	b = bot{t, c_ids, l}
+}
+
+func (b *bot) Bot() *tgbotapi.BotAPI {
 	if t == nil {
 		once.Do(func() {
-			tgPointer, err := tgbotapi.NewBotAPI(token)
+			tgPointer, err := tgbotapi.NewBotAPI(b.token)
 			if err != nil {
 				log.Fatalln(errGetBot)
 			}
@@ -44,12 +46,12 @@ func Bot() *tgbotapi.BotAPI {
 }
 
 func SendMsg(tgMsg string) {
-	now := time.Now().In(location).Format(StampMicro)
+	now := time.Now().In(b.location).Format(StampMicro)
 	tgMsg = fmt.Sprintf("%s \n%s", tgMsg, now)
 
-	for _, chat_id := range chat_ids {
-		msg := tgbotapi.NewMessage(int64(chat_id.(float64)), tgMsg)
-		_, err := Bot().Send(msg)
+	for _, chat_id := range b.chat_ids {
+		msg := tgbotapi.NewMessage(int64(chat_id), tgMsg)
+		_, err := b.Bot().Send(msg)
 		if err != nil {
 			log.Fatalln(errSendMsg)
 		}
@@ -61,7 +63,7 @@ func GetUpdates() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updateChannel, err := Bot().GetUpdatesChan(u)
+	updateChannel, err := b.Bot().GetUpdatesChan(u)
 	if err != nil {
 		log.Fatalln(errGetUpdates)
 	}

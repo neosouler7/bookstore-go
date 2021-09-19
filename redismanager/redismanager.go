@@ -23,17 +23,17 @@ var (
 )
 
 func init() {
-	location = commons.SetTimeZone("redis")
+	location = commons.SetTimeZone("Redis")
 }
 
 func client() *redis.Client {
 	if r == nil {
 		once.Do(func() {
-			var redisInfo = commons.ReadConfig("Redis").(map[string]interface{})
+			redisConfig := commons.ReadConfig("Redis").(commons.RedisConfig)
 			r = redis.NewClient(&redis.Options{
-				Addr:     fmt.Sprintf("%s:%s", redisInfo["host"], redisInfo["port"]),
-				Password: redisInfo["pwd"].(string),
-				DB:       int(redisInfo["db"].(float64)),
+				Addr:     fmt.Sprintf("%s:%s", redisConfig.Host, redisConfig.Port),
+				Password: redisConfig.Pwd,
+				DB:       redisConfig.Db,
 			})
 
 			_, err := r.Ping(ctx).Result()

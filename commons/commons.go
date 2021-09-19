@@ -13,17 +13,28 @@ import (
 	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
+type RedisConfig struct {
+	Host string
+	Port string
+	Pwd  string
+	Db   int
+}
+
+type TgConfig struct {
+	Token    string
+	Chat_ids []int
+}
+
 type config struct {
-	Redis     map[string]interface{}
-	Tg        map[string]interface{}
+	Redis     RedisConfig
+	Tg        TgConfig
 	ApiKey    map[string]interface{}
 	RateLimit map[string]interface{}
 	Pairs     map[string]interface{}
 }
 
 func getAttr(obj interface{}, fieldName string) reflect.Value {
-	pointToStruct := reflect.ValueOf(obj)
-	curStruct := pointToStruct.Elem()
+	curStruct := reflect.ValueOf(obj).Elem()
 	if curStruct.Kind() != reflect.Struct {
 		panic("not struct")
 	}
@@ -38,12 +49,9 @@ func ReadConfig(key string) interface{} {
 	path, _ := os.Getwd()
 	file, _ := os.Open(path + "/config/config.json")
 	defer file.Close()
-	decoder := json.NewDecoder(file)
 
 	c := config{}
-	err := decoder.Decode(&c)
-	tgmanager.HandleErr("ReadConfig", err)
-
+	tgmanager.HandleErr("ReadConfig", json.NewDecoder(file).Decode(&c))
 	return getAttr(&c, key).Interface()
 }
 

@@ -32,9 +32,10 @@ func main() {
 	exchange := flag.String("e", "", "Set exchange code to run")
 	flag.Parse()
 
+	tgConfig := commons.ReadConfig("Tg").(commons.TgConfig)
 	tgmanager.InitBot(
-		commons.ReadConfig("Tg").(map[string]interface{})["token"].(string),
-		commons.ReadConfig("Tg").(map[string]interface{})["chat_ids"].([]interface{}),
+		tgConfig.Token,
+		tgConfig.Chat_ids,
 		commons.SetTimeZone("Tg"),
 	)
 
