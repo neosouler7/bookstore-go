@@ -17,6 +17,8 @@ import (
 )
 
 var (
+	w            *websocket.Conn
+	once         sync.Once
 	ErrReadMsg   = errors.New("[ERROR] reading msg on ws")
 	SubscribeMsg = "%s websocket subscribed!\n"
 	FilteredMsg  = "%s websocket msg filtered - %s\n"
@@ -32,37 +34,32 @@ const (
 	upbEndPoint string = "api.upbit.com"
 )
 
-var w *websocket.Conn
-var once sync.Once
-
 func Conn(exchange string) *websocket.Conn {
-	if w == nil {
-		once.Do(func() {
-			host, path := getHostPath(exchange)
-			u := url.URL{Scheme: "wss", Host: host, Path: path}
-			if exchange == "gpx" {
-				apiKey := config.GetApiKey(exchange)
-				publicKey, secretKey := apiKey.Public, apiKey.Secret
+	once.Do(func() {
+		host, path := getHostPath(exchange)
+		u := url.URL{Scheme: "wss", Host: host, Path: path}
+		if exchange == "gpx" {
+			apiKey := config.GetApiKey(exchange)
+			publicKey, secretKey := apiKey.Public, apiKey.Secret
 
-				ts := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
-				key, _ := base64.StdEncoding.DecodeString(secretKey)
+			ts := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
+			key, _ := base64.StdEncoding.DecodeString(secretKey)
 
-				h := hmac.New(sha512.New, []byte(key))
-				h.Write([]byte(fmt.Sprintf("t%s", ts)))
-				signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+			h := hmac.New(sha512.New, []byte(key))
+			h.Write([]byte(fmt.Sprintf("t%s", ts)))
+			signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
-				params := url.Values{}
-				params.Set("apiKey", publicKey)
-				params.Set("timestamp", ts)
-				params.Set("signature", signature)
-				u.RawQuery = params.Encode()
-			}
+			params := url.Values{}
+			params.Set("apiKey", publicKey)
+			params.Set("timestamp", ts)
+			params.Set("signature", signature)
+			u.RawQuery = params.Encode()
+		}
 
-			wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-			tgmanager.HandleErr(exchange, err)
-			w = wPointer
-		})
-	}
+		wPointer, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		tgmanager.HandleErr(exchange, err)
+		w = wPointer
+	})
 	return w
 }
 

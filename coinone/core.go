@@ -19,7 +19,6 @@ import (
 var (
 	errWSRequest = errors.New("[ERROR] ws request")
 	exchange     string
-	pairs        []string
 	pingMsg      string = "{\"requestType\": \"PING\"}"
 )
 
@@ -30,7 +29,7 @@ func pongWs() {
 	}
 }
 
-func subscribeWs() {
+func subscribeWs(pairs []string) {
 	time.Sleep(time.Second * 1)
 	for _, pair := range pairs {
 		var pairInfo = strings.Split(pair, ":")
@@ -74,7 +73,7 @@ func receiveWs() {
 	}
 }
 
-func rest() {
+func rest(pairs []string) {
 	c := make(chan map[string]interface{})
 	buffer, rateLimit := config.GetRateLimit(exchange)
 
@@ -96,7 +95,8 @@ func rest() {
 }
 
 func Run(e string) {
-	exchange, pairs = e, config.GetPairs(exchange)
+	exchange = e
+	pairs := config.GetPairs(exchange)
 	var wg sync.WaitGroup
 
 	// ping
@@ -106,7 +106,7 @@ func Run(e string) {
 	// subscribe websocket stream
 	wg.Add(1)
 	go func() {
-		subscribeWs()
+		subscribeWs(pairs)
 		wg.Done()
 	}()
 
@@ -116,7 +116,7 @@ func Run(e string) {
 
 	// rest
 	wg.Add(1)
-	go rest()
+	go rest(pairs)
 
 	wg.Wait()
 }
