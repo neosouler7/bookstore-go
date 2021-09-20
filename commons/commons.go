@@ -13,19 +13,7 @@ import (
 	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
-func GetTargetVolumeMap(exchange string) map[string]string {
-	volumeMap := make(map[string]string)
-	pairs := config.GetPairs(exchange)
-	for _, p := range pairs {
-		var pairInfo = strings.Split(p, ":")
-		market, symbol, targetVolume := pairInfo[0], pairInfo[1], pairInfo[2]
-
-		volumeMap[market+":"+symbol] = targetVolume
-	}
-	return volumeMap
-}
-
-func GetObTargetPrice(volume string, orderbook interface{}) (string, error) {
+func GetObTargetPrice(volume string, orderbook interface{}) string {
 	/*
 		ask's price should go up, and bid should go down
 
@@ -45,10 +33,21 @@ func GetObTargetPrice(volume string, orderbook interface{}) (string, error) {
 
 		currentVolume += volume
 		if currentVolume >= targetVolume {
-			return obInfo[0], nil
+			return obInfo[0]
 		}
 	}
-	return obSlice[len(obSlice)-1].([2]string)[0], nil
+	return obSlice[len(obSlice)-1].([2]string)[0]
+}
+
+func GetTargetVolumeMap(exchange string) map[string]string {
+	volumeMap := make(map[string]string)
+	for _, p := range config.GetPairs(exchange) {
+		var pairInfo = strings.Split(p, ":")
+		market, symbol, targetVolume := pairInfo[0], pairInfo[1], pairInfo[2]
+
+		volumeMap[market+":"+symbol] = targetVolume
+	}
+	return volumeMap
 }
 
 func FormatTs(ts string) string {

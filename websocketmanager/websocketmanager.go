@@ -17,8 +17,6 @@ import (
 )
 
 var (
-	errGetConn   = errors.New("[ERROR] connecting ws")
-	errSendMsg   = errors.New("[ERROR] sending msg on ws")
 	ErrReadMsg   = errors.New("[ERROR] reading msg on ws")
 	SubscribeMsg = "%s websocket subscribed!\n"
 	FilteredMsg  = "%s websocket msg filtered - %s\n"

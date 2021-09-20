@@ -54,25 +54,22 @@ type orderbook struct {
 }
 
 func PreHandleOrderbook(api string, exchange string, market string, symbol string, askSlice []interface{}, bidSlice []interface{}, ts string) {
-	var targetVolumeMap = commons.GetTargetVolumeMap(exchange)
-	var targetVolume = targetVolumeMap[market+":"+symbol]
+	ob := newOrderbook(exchange, market, symbol, ts)
 
-	askPrice, err := commons.GetObTargetPrice(targetVolume, askSlice)
-	tgmanager.HandleErr(exchange, err)
-	bidPrice, err := commons.GetObTargetPrice(targetVolume, bidSlice)
-	tgmanager.HandleErr(exchange, err)
+	targetVolume := commons.GetTargetVolumeMap(exchange)[market+":"+symbol]
+	askPrice, bidPrice := commons.GetObTargetPrice(targetVolume, askSlice), commons.GetObTargetPrice(targetVolume, bidSlice)
+	ob.askPrice, ob.bidPrice = askPrice, bidPrice
 
-	ob := newOrderbook(exchange, market, symbol, askPrice, bidPrice, ts)
 	ob.setOrderbook(api)
 }
 
-func newOrderbook(exchange string, market string, symbol string, askPrice string, bidPrice string, ts string) *orderbook {
+func newOrderbook(exchange string, market string, symbol string, ts string) *orderbook {
 	ob := &orderbook{
 		exchange: exchange,
 		market:   market,
 		symbol:   symbol,
-		askPrice: askPrice,
-		bidPrice: bidPrice,
+		askPrice: "",
+		bidPrice: "",
 		ts:       ts,
 	}
 	return ob
