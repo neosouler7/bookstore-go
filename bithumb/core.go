@@ -16,10 +16,11 @@ import (
 
 var (
 	exchange string
+	pairs    []string
 	syncMap  sync.Map
 )
 
-func subscribeWs(pairs []string) {
+func subscribeWs() {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
 	for _, pair := range pairs {
@@ -35,7 +36,7 @@ func subscribeWs(pairs []string) {
 	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
-func receiveWs(pairs []string) {
+func receiveWs() {
 	c := make(chan map[string]interface{})
 
 	// rest for each pairs just once
@@ -52,7 +53,7 @@ func receiveWs(pairs []string) {
 	}
 
 	// init websocket
-	go subscribeWs(pairs)
+	go subscribeWs()
 
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
@@ -159,7 +160,7 @@ func receiveWs(pairs []string) {
 	}
 }
 
-func rest(pairs []string) {
+func rest() {
 	c := make(chan map[string]interface{})
 	buffer, rateLimit := config.GetRateLimit(exchange)
 
@@ -183,18 +184,16 @@ func rest(pairs []string) {
 }
 
 func Run(e string) {
-	exchange = e
-	var pairs = config.GetPairs(exchange)
-
+	exchange, pairs = e, config.GetPairs(exchange)
 	var wg sync.WaitGroup
 
 	// bmb returns CHANGED orderbooks
 	// temp WS remove
 	// wg.Add(1)
-	// go receiveWs(pairs)
+	// go receiveWs()
 
 	wg.Add(1)
-	go rest(pairs)
+	go rest()
 
 	wg.Wait()
 }

@@ -15,9 +15,10 @@ import (
 
 var (
 	exchange string
+	pairs    []string
 )
 
-func subscribeWs(pairs []string) {
+func subscribeWs() {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
 	for _, pair := range pairs {
@@ -35,13 +36,13 @@ func subscribeWs(pairs []string) {
 	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
-func receiveWs(pairs []string) {
+func receiveWs() {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(string(msgBytes), "connected") {
-			subscribeWs(pairs) // just once
+			subscribeWs() // just once
 		} else if strings.Contains(string(msgBytes), "subscribe") {
 			continue
 		} else if strings.Contains(string(msgBytes), "push-orderbook") {
@@ -54,7 +55,7 @@ func receiveWs(pairs []string) {
 	}
 }
 
-func rest(pairs []string) {
+func rest() {
 	c := make(chan map[string]interface{})
 	buffer, rateLimit := config.GetRateLimit(exchange)
 
@@ -76,18 +77,16 @@ func rest(pairs []string) {
 }
 
 func Run(e string) {
-	exchange = e
-	var pairs = config.GetPairs(exchange)
-
+	exchange, pairs = e, config.GetPairs(exchange)
 	var wg sync.WaitGroup
 
 	// receive websocket msg
 	wg.Add(1)
-	go receiveWs(pairs)
+	go receiveWs()
 
 	// rest
 	wg.Add(1)
-	go rest(pairs)
+	go rest()
 
 	wg.Wait()
 }

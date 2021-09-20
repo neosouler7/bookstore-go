@@ -15,6 +15,7 @@ import (
 
 var (
 	exchange string
+	pairs    []string
 )
 
 func pongWs() {
@@ -24,7 +25,7 @@ func pongWs() {
 	}
 }
 
-func subscribeWs(pairs []string) {
+func subscribeWs() {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
 	for _, pair := range pairs {
@@ -56,7 +57,7 @@ func receiveWs() {
 	}
 }
 
-func rest(pairs []string) {
+func rest() {
 	c := make(chan map[string]interface{})
 	buffer, rateLimit := config.GetRateLimit(exchange)
 
@@ -78,9 +79,7 @@ func rest(pairs []string) {
 }
 
 func Run(e string) {
-	exchange = e
-	var pairs = config.GetPairs(exchange)
-
+	exchange, pairs = e, config.GetPairs(exchange)
 	var wg sync.WaitGroup
 
 	// pong
@@ -90,7 +89,7 @@ func Run(e string) {
 	// subscribe websocket stream
 	wg.Add(1)
 	go func() {
-		subscribeWs(pairs)
+		subscribeWs()
 		wg.Done()
 	}()
 
@@ -100,7 +99,7 @@ func Run(e string) {
 
 	// rest
 	wg.Add(1)
-	go rest(pairs)
+	go rest()
 
 	wg.Wait()
 }

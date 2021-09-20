@@ -16,6 +16,7 @@ import (
 
 var (
 	exchange string
+	pairs    []string
 	syncMap  sync.Map
 )
 
@@ -29,7 +30,7 @@ func pongWs(msg string) {
 	fmt.Printf("%s PONG %s\n", exchange, msg)
 }
 
-func subscribeWs(pairs []string) {
+func subscribeWs() {
 	for _, pair := range pairs {
 		var pairInfo = strings.Split(pair, ":")
 		market, symbol := strings.ToUpper(pairInfo[0]), strings.ToUpper(pairInfo[1])
@@ -157,7 +158,7 @@ func receiveWs() {
 	}
 }
 
-func rest(pairs []string) {
+func rest() {
 	c := make(chan map[string]interface{})
 	buffer, rateLimit := config.GetRateLimit(exchange)
 
@@ -179,15 +180,13 @@ func rest(pairs []string) {
 }
 
 func Run(e string) {
-	exchange = e
-	var pairs = config.GetPairs(exchange)
-
+	exchange, pairs = e, config.GetPairs(exchange)
 	var wg sync.WaitGroup
 
 	// subscribe websocket stream
 	wg.Add(1)
 	go func() {
-		subscribeWs(pairs)
+		subscribeWs()
 		wg.Done()
 	}()
 
@@ -197,7 +196,7 @@ func Run(e string) {
 
 	// rest
 	wg.Add(1)
-	go rest(pairs)
+	go rest()
 
 	wg.Wait()
 }
