@@ -94,7 +94,7 @@ func (ob *orderbook) setOrderbook(api string) {
 		tgmanager.HandleErr(ob.exchange, err)
 
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
-		fmt.Printf("%s Set %s %s %4dms %4s\n", now, api, key, timeGap, ob.ts)
+		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, timeGap, ob.askPrice, ob.bidPrice, ob.ts)
 	} else {
 		fmt.Printf("%s >>> %s %s\n", now, api, key)
 	}

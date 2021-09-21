@@ -189,8 +189,8 @@ func Run(e string) {
 
 	// bmb returns CHANGED orderbooks
 	// temp WS remove
-	// wg.Add(1)
-	// go receiveWs()
+	wg.Add(1)
+	go receiveWs(pairs)
 
 	wg.Add(1)
 	go rest(pairs)

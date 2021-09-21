@@ -47,7 +47,7 @@ func (b *bot) Bot() *tgbotapi.BotAPI {
 
 func SendMsg(tgMsg string) {
 	now := time.Now().In(b.location).Format(StampMicro)
-	tgMsg = fmt.Sprintf("%s \n%s", tgMsg, now)
+	tgMsg = fmt.Sprintf("%s \n\n%s", tgMsg, now)
 
 	for _, chat_id := range b.chat_ids {
 		msg := tgbotapi.NewMessage(int64(chat_id), tgMsg)
