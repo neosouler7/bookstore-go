@@ -25,19 +25,26 @@ var (
 )
 
 const (
-	binEndPoint string = "stream.binance.com:9443"
-	bmbEndPoint string = "pubwss.bithumb.com"
-	conEndPoint string = "public-ws-api.coinone.co.kr"
-	gpxEndPoint string = "wsapi.gopax.co.kr"
-	hbkEndPoint string = "api-cloud.huobi.co.kr"
-	kbtEndPoint string = "ws.korbit.co.kr"
-	upbEndPoint string = "api.upbit.com"
+	bin string = "stream.binance.com:9443"
+	bmb string = "pubwss.bithumb.com"
+	con string = "public-ws-api.coinone.co.kr"
+	gpx string = "wsapi.gopax.co.kr"
+	hbk string = "api-cloud.huobi.co.kr"
+	kbt string = "ws.korbit.co.kr"
+	upb string = "api.upbit.com"
 )
+
+type hostPath struct {
+	host string
+	path string
+}
 
 func Conn(exchange string) *websocket.Conn {
 	once.Do(func() {
-		host, path := getHostPath(exchange)
-		u := url.URL{Scheme: "wss", Host: host, Path: path}
+		h := &hostPath{}
+		h.getHostPath(exchange)
+
+		u := url.URL{Scheme: "wss", Host: h.host, Path: h.path}
 		if exchange == "gpx" {
 			apiKey := config.GetApiKey(exchange)
 			publicKey, secretKey := apiKey.Public, apiKey.Secret
@@ -63,32 +70,30 @@ func Conn(exchange string) *websocket.Conn {
 	return w
 }
 
-func getHostPath(exchange string) (string, string) {
-	var host, path string
+func (h *hostPath) getHostPath(exchange string) {
 	switch exchange {
 	case "bin":
-		host = binEndPoint
-		path = "/stream"
+		h.host = bin
+		h.path = "/stream"
 	case "bmb":
-		host = bmbEndPoint
-		path = "/pub/ws"
+		h.host = bmb
+		h.path = "/pub/ws"
 	case "con":
-		host = conEndPoint
-		path = ""
+		h.host = con
+		h.path = ""
 	case "gpx":
-		host = gpxEndPoint
-		path = ""
+		h.host = gpx
+		h.path = ""
 	case "hbk":
-		host = hbkEndPoint
-		path = "/ws"
+		h.host = hbk
+		h.path = "/ws"
 	case "kbt":
-		host = kbtEndPoint
-		path = "/v1/user/push"
+		h.host = kbt
+		h.path = "/v1/user/push"
 	case "upb":
-		host = upbEndPoint
-		path = "/websocket/v1"
+		h.host = upb
+		h.path = "/websocket/v1"
 	}
-	return host, path
 }
 
 func SendMsg(exchange string, msg string) {

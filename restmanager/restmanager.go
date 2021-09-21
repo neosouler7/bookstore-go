@@ -13,64 +13,65 @@ import (
 )
 
 var (
-	errHttpRequest = errors.New("http request")
+	errHttpRequest = errors.New("[ERROR] http request")
+	c              *fasthttp.Client
+	once           sync.Once
 )
 
 const (
-	binEndPoint string = "https://api.binance.com"
-	bmbEndPoint string = "https://api.bithumb.com"
-	conEndPoint string = "https://api.coinone.co.kr"
-	gpxEndPoint string = "https://api.gopax.co.kr"
-	hbkEndPoint string = "https://api-cloud.huobi.co.kr"
-	kbtEndPoint string = "https://api3.korbit.co.kr"
-	upbEndPoint string = "https://api.upbit.com"
+	bin string = "https://api.binance.com"
+	bmb string = "https://api.bithumb.com"
+	con string = "https://api.coinone.co.kr"
+	gpx string = "https://api.gopax.co.kr"
+	hbk string = "https://api-cloud.huobi.co.kr"
+	kbt string = "https://api3.korbit.co.kr"
+	upb string = "https://api.upbit.com"
 )
 
-var c *fasthttp.Client
-var once sync.Once
+type epqs struct {
+	endPoint    string
+	queryString string
+}
 
 func fastHttpClient() *fasthttp.Client {
-	if c == nil {
-		once.Do(func() {
-			clientPointer := &fasthttp.Client{}
-			c = clientPointer
-		})
-	}
+	once.Do(func() {
+		clientPointer := &fasthttp.Client{}
+		c = clientPointer
+	})
 	return c
 }
 
-func getEndpointQuerystring(exchange string, market string, symbol string) (string, string) {
-	var endPoint, queryString string
+func (e *epqs) getEpqs(exchange string, market string, symbol string) {
 	switch exchange {
 	case "bin":
-		endPoint = binEndPoint + "/api/v3/depth"
-		queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
+		e.endPoint = bin + "/api/v3/depth"
+		e.queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
 	case "bmb":
-		endPoint = bmbEndPoint + fmt.Sprintf("/public/orderbook/%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
-		queryString = "" // bmb does not use querystring
+		e.endPoint = bmb + fmt.Sprintf("/public/orderbook/%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
+		e.queryString = "" // bmb does not use querystring
 	case "con":
-		endPoint = conEndPoint + "/orderbook/"
-		queryString = fmt.Sprintf("currency=%s", strings.ToUpper(symbol))
+		e.endPoint = con + "/orderbook/"
+		e.queryString = fmt.Sprintf("currency=%s", strings.ToUpper(symbol))
 	case "gpx":
-		endPoint = gpxEndPoint + fmt.Sprintf("/trading-pairs/%s-%s/book", strings.ToUpper(symbol), strings.ToUpper(market))
-		queryString = "" // gpx does not use querystring
+		e.endPoint = gpx + fmt.Sprintf("/trading-pairs/%s-%s/book", strings.ToUpper(symbol), strings.ToUpper(market))
+		e.queryString = "" // gpx does not use querystring
 	case "hbk":
-		endPoint = hbkEndPoint + "/market/depth"
-		queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
+		e.endPoint = hbk + "/market/depth"
+		e.queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
 	case "kbt":
-		endPoint = kbtEndPoint + "/v1/orderbook"
-		queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
+		e.endPoint = kbt + "/v1/orderbook"
+		e.queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
 	case "upb":
-		endPoint = upbEndPoint + "/v1/orderbook"
-		queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
+		e.endPoint = upb + "/v1/orderbook"
+		e.queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
 	}
-	return endPoint, queryString
 }
 
 func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
 	var pairInfo = strings.Split(pair, ":")
 	market, symbol := pairInfo[0], pairInfo[1]
-	endPoint, queryString := getEndpointQuerystring(exchange, market, symbol)
+	epqs := &epqs{}
+	epqs.getEpqs(exchange, market, symbol)
 
 	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 	defer func() {
@@ -79,8 +80,8 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	}()
 
 	req.Header.SetMethod(fasthttp.MethodGet)
-	req.SetRequestURI(endPoint)
-	req.URI().SetQueryString(queryString)
+	req.SetRequestURI(epqs.endPoint)
+	req.URI().SetQueryString(epqs.queryString)
 
 	err := fastHttpClient().Do(req, res)
 	tgmanager.HandleErr(exchange, err)
