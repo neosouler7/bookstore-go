@@ -160,7 +160,7 @@ func receiveWs(pairs []string) {
 }
 
 func rest(pairs []string) {
-	c := make(chan map[string]interface{})
+	c := make(chan map[string]interface{}, len(pairs)) // make buffered
 	buffer, rateLimit := config.GetRateLimit(exchange)
 
 	for {
