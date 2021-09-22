@@ -41,7 +41,7 @@ func fastHttpClient() *fasthttp.Client {
 	return c
 }
 
-func (e *epqs) getEpqs(exchange string, market string, symbol string) {
+func (e *epqs) getEpqs(exchange, market, symbol string) {
 	switch exchange {
 	case "bin":
 		e.endPoint = bin + "/api/v3/depth"
@@ -67,7 +67,7 @@ func (e *epqs) getEpqs(exchange string, market string, symbol string) {
 	}
 }
 
-func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
+func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair string) {
 	var pairInfo = strings.Split(pair, ":")
 	market, symbol := pairInfo[0], pairInfo[1]
 	epqs := &epqs{}

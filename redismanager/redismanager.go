@@ -23,27 +23,6 @@ var (
 	StampMicro = "Jan _2 15:04:05.000000"
 )
 
-func init() {
-	location = commons.SetTimeZone("Redis")
-}
-
-func client() *redis.Client {
-	if r == nil {
-		once.Do(func() {
-			redisConfig := config.GetRedis()
-			r = redis.NewClient(&redis.Options{
-				Addr:     fmt.Sprintf("%s:%s", redisConfig.Host, redisConfig.Port),
-				Password: redisConfig.Pwd,
-				DB:       redisConfig.Db,
-			})
-
-			_, err := r.Ping(ctx).Result()
-			tgmanager.HandleErr("redis", err)
-		})
-	}
-	return r
-}
-
 type orderbook struct {
 	exchange string
 	market   string
@@ -53,7 +32,26 @@ type orderbook struct {
 	ts       string
 }
 
-func PreHandleOrderbook(api string, exchange string, market string, symbol string, askSlice []interface{}, bidSlice []interface{}, ts string) {
+func init() {
+	location = commons.SetTimeZone("Redis")
+}
+
+func client() *redis.Client {
+	once.Do(func() {
+		redisConfig := config.GetRedis()
+		r = redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%s:%s", redisConfig.Host, redisConfig.Port),
+			Password: redisConfig.Pwd,
+			DB:       redisConfig.Db,
+		})
+
+		_, err := r.Ping(ctx).Result()
+		tgmanager.HandleErr("redis", err)
+	})
+	return r
+}
+
+func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice []interface{}, ts string) {
 	ob := newOrderbook(exchange, market, symbol, ts)
 
 	targetVolume := commons.GetTargetVolumeMap(exchange)[market+":"+symbol]
@@ -63,7 +61,7 @@ func PreHandleOrderbook(api string, exchange string, market string, symbol strin
 	ob.setOrderbook(api)
 }
 
-func newOrderbook(exchange string, market string, symbol string, ts string) *orderbook {
+func newOrderbook(exchange, market, symbol, ts string) *orderbook {
 	ob := &orderbook{
 		exchange: exchange,
 		market:   market,
@@ -94,7 +92,7 @@ func (ob *orderbook) setOrderbook(api string) {
 		tgmanager.HandleErr(ob.exchange, err)
 
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
-		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, timeGap, ob.askPrice, ob.bidPrice, ob.ts)
+		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, timeGap, ob.ts, ob.askPrice, ob.bidPrice)
 	} else {
 		fmt.Printf("%s >>> %s %s\n", now, api, key)
 	}

@@ -15,6 +15,9 @@ var (
 	errGetBot     = errors.New("tg init failed")
 	errSendMsg    = errors.New("tg sendMsg failed")
 	errGetUpdates = errors.New("tg getUpdated failed")
+	t             *tgbotapi.BotAPI
+	once          sync.Once
+	b             bot
 )
 
 type bot struct {
@@ -22,10 +25,6 @@ type bot struct {
 	chat_ids []int
 	location *time.Location
 }
-
-var t *tgbotapi.BotAPI
-var once sync.Once
-var b bot
 
 func InitBot(t string, c_ids []int, l *time.Location) {
 	b = bot{t, c_ids, l}

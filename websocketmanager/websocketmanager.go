@@ -96,7 +96,7 @@ func (h *hostPath) getHostPath(exchange string) {
 	}
 }
 
-func SendMsg(exchange string, msg string) {
+func SendMsg(exchange, msg string) {
 	err := Conn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
 	tgmanager.HandleErr(exchange, err)
 }
