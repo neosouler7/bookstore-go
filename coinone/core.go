@@ -68,7 +68,7 @@ func receiveWs() {
 		case "SUBSCRIBED":
 			fmt.Println("coinone ws SUBSCRIBED")
 		case "DATA":
-			SetOrderbook("W", exchange, rJson)
+			go SetOrderbook("W", exchange, rJson)
 		}
 	}
 }
@@ -84,7 +84,7 @@ func rest(pairs []string) {
 
 		for i := 0; i < len(pairs); i++ {
 			rJson := <-c
-			SetOrderbook("R", exchange, rJson)
+			go SetOrderbook("R", exchange, rJson)
 		}
 
 		// 1번에 (1s / rateLimit)s 만큼 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.

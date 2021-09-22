@@ -22,7 +22,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		market, symbol = pairMap[pair].(map[string]string)["market"], pairMap[pair].(map[string]string)["symbol"]
 	}
 
-	ts := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
+	ts := commons.FormatTs(fmt.Sprintf("%d", int(time.Now().UnixMilli())))
 
 	var askResponse, bidResponse []interface{}
 	switch api {

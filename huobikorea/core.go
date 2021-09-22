@@ -58,7 +58,7 @@ func receiveWs() {
 			var rJson interface{}
 			commons.Bytes2Json([]byte(gzipMsg.String()), &rJson)
 
-			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+			go SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		} else {
 			tgmanager.HandleErr(exchange, websocketmanager.ErrReadMsg)
 		}
@@ -76,7 +76,7 @@ func rest(pairs []string) {
 
 		for i := 0; i < len(pairs); i++ {
 			rJson := <-c
-			SetOrderbook("R", exchange, rJson)
+			go SetOrderbook("R", exchange, rJson)
 		}
 
 		// 1번에 (1s / rateLimit)s 만큼 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
