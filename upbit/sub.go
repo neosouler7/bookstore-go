@@ -9,7 +9,6 @@ import (
 )
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
-	// upb differs "market-symbol" receive form by api type
 	var pair string
 	switch api {
 	case "R":
@@ -18,15 +17,13 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		pair = rJson["code"].(string)
 	}
 	var pairInfo = strings.Split(pair, "-")
-	var market = strings.ToLower(pairInfo[0])
-	var symbol = strings.ToLower(pairInfo[1])
+	var market, symbol = strings.ToLower(pairInfo[0]), strings.ToLower(pairInfo[1])
 
 	tsFloat := int(rJson["timestamp"].(float64))
 	ts := commons.FormatTs(fmt.Sprintf("%d", tsFloat))
 	orderbooks := rJson["orderbook_units"].([]interface{})
 
-	var askSlice []interface{}
-	var bidSlice []interface{}
+	var askSlice, bidSlice []interface{}
 	for _, ob := range orderbooks {
 		o := ob.(map[string]interface{})
 		ask := [2]string{fmt.Sprintf("%f", o["ask_price"]), fmt.Sprintf("%f", o["ask_size"])}

@@ -7,32 +7,32 @@ import (
 	"time"
 
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/config"
 	"github.com/neosouler7/bookstore-go/restmanager"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 	"github.com/neosouler7/bookstore-go/websocketmanager"
 
 	"github.com/google/uuid"
 )
 
-const latencyAllowed float64 = 10.0 // per 1 second
 var (
 	exchange string
+	pingMsg  string = "PING"
 )
 
-func pingWs() {
-	msg := "PING"
+func pongWs() {
 	for {
-		websocketmanager.SendMsg(exchange, msg)
+		websocketmanager.SendMsg(exchange, pingMsg)
 		time.Sleep(time.Second * 5)
 	}
 }
 
-func subscribeWs(pairs interface{}) {
+func subscribeWs(pairs []string) {
 	time.Sleep(time.Second * 1)
 	var streamSlice []string
-	for _, pair := range pairs.([]interface{}) {
-		var pairInfo = strings.Split(pair.(string), ":")
-		var market = strings.ToUpper(pairInfo[0])
-		var symbol = strings.ToUpper(pairInfo[1])
+	for _, pair := range pairs {
+		var pairInfo = strings.Split(pair, ":")
+		market, symbol := strings.ToUpper(pairInfo[0]), strings.ToUpper(pairInfo[1])
 
 		streamSlice = append(streamSlice, fmt.Sprintf("'%s-%s'", market, symbol))
 	}
@@ -41,54 +41,53 @@ func subscribeWs(pairs interface{}) {
 	msg := fmt.Sprintf("[{'ticket':'%s'}, {'type': 'orderbook', 'codes': [%s]}]", uuid, streams)
 
 	websocketmanager.SendMsg(exchange, msg)
-	fmt.Println("UPB websocket subscribe msg sent!")
+	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
 func receiveWs() {
 	for {
 		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		commons.HandleErr(err, websocketmanager.ErrReadMsg)
+		tgmanager.HandleErr(exchange, err)
 
 		if strings.Contains(string(msgBytes), "status") {
 			fmt.Println("PONG") // {"status":"UP"}
 		} else {
 			var rJson interface{}
 			commons.Bytes2Json(msgBytes, &rJson)
-			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+			go SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		}
 	}
 }
 
-func rest(pairs interface{}) {
-	c := make(chan map[string]interface{})
+func rest(pairs []string) {
+	c := make(chan map[string]interface{}, len(pairs)) // make buffered
+	buffer, rateLimit := config.GetRateLimit(exchange)
 
 	for {
-		for _, pair := range pairs.([]interface{}) {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair.(string))
+		for _, pair := range pairs {
+			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
 		}
 
-		for i := 0; i < len(pairs.([]interface{})); i++ {
+		for i := 0; i < len(pairs); i++ {
 			rJson := <-c
-			SetOrderbook("R", exchange, rJson)
+			go SetOrderbook("R", exchange, rJson)
 		}
 
-		// 1번에 (1s / LATENCY_ALLOWD) = 0.1s 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
-		// ex) 0.1s * 2 = 0.2s => 200ms
-		buffer := 1.0
-		pairsLength := float64(len(pairs.([]interface{}))) * buffer
-		time.Sleep(time.Millisecond * time.Duration(int(1/latencyAllowed*pairsLength*10*100)))
+		// 1번에 (1s / rateLimit)s 만큼 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
+		// ex) 1 / 10 s * 2 = 0.2s => 200ms
+		pairsLength := float64(len(pairs)) * buffer
+		time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
 	}
 }
 
 func Run(e string) {
 	exchange = e
-	var pairs = commons.ReadConfig("Pairs").(map[string]interface{})[exchange]
-
+	pairs := config.GetPairs(exchange)
 	var wg sync.WaitGroup
 
 	// ping
 	wg.Add(1)
-	go pingWs()
+	go pongWs()
 
 	// subscribe websocket stream
 	wg.Add(1)

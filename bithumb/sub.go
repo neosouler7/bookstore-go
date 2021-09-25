@@ -9,25 +9,19 @@ import (
 )
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
-	var market = strings.ToLower(rJson["payment_currency"].(string))
-	var symbol = strings.ToLower(rJson["order_currency"].(string))
+	market, symbol := strings.ToLower(rJson["payment_currency"].(string)), strings.ToLower(rJson["order_currency"].(string))
 
 	ts := commons.FormatTs(fmt.Sprintf("%s", rJson["timestamp"]))
 
-	var askResponse, bidResponse []interface{}
-	var askSlice, bidSlice []interface{}
+	askResponse, bidResponse := rJson["asks"].([]interface{}), rJson["bids"].([]interface{})
 
-	askResponse = rJson["asks"].([]interface{})
-	bidResponse = rJson["bids"].([]interface{})
-	if len(askResponse) == len(bidResponse) {
-		for i := range askResponse {
-			askR := askResponse[i].(map[string]interface{})
-			bidR := bidResponse[i].(map[string]interface{})
-			ask := [2]string{fmt.Sprintf("%f", askR["price"]), fmt.Sprintf("%f", askR["quantity"])}
-			bid := [2]string{fmt.Sprintf("%f", bidR["price"]), fmt.Sprintf("%f", bidR["quantity"])}
-			askSlice = append(askSlice, ask)
-			bidSlice = append(bidSlice, bid)
-		}
+	var askSlice, bidSlice []interface{}
+	for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
+		askR, bidR := askResponse[i].(map[string]interface{}), bidResponse[i].(map[string]interface{})
+		ask := [2]string{fmt.Sprintf("%s", askR["price"]), fmt.Sprintf("%s", askR["quantity"])}
+		bid := [2]string{fmt.Sprintf("%s", bidR["price"]), fmt.Sprintf("%s", bidR["quantity"])}
+		askSlice = append(askSlice, ask)
+		bidSlice = append(bidSlice, bid)
 	}
 
 	redismanager.PreHandleOrderbook(

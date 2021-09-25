@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/neosouler7/bookstore-go/binance"
 	"github.com/neosouler7/bookstore-go/bithumb"
 	"github.com/neosouler7/bookstore-go/coinone"
+	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/config"
+	"github.com/neosouler7/bookstore-go/gopax"
 	"github.com/neosouler7/bookstore-go/huobikorea"
 	"github.com/neosouler7/bookstore-go/korbit"
-	"github.com/neosouler7/bookstore-go/upbit"
-
-	"github.com/neosouler7/bookstore-go/binance"
 	"github.com/neosouler7/bookstore-go/tgmanager"
+	"github.com/neosouler7/bookstore-go/upbit"
 )
 
 func usage() {
@@ -31,27 +33,37 @@ func main() {
 	exchange := flag.String("e", "", "Set exchange code to run")
 	flag.Parse()
 
-	tgMsg := fmt.Sprintf("[bookstore-go] %s\n", *exchange)
+	tgConfig := config.GetTg()
+	tgmanager.InitBot(
+		tgConfig.Token,
+		tgConfig.Chat_ids,
+		commons.SetTimeZone("Tg"),
+	)
+
+	tgMsg := fmt.Sprintf("[bookstore-go] %s", *exchange)
 	switch *exchange {
 	default:
 		usage()
-	case "upb":
-		tgmanager.SendMsg(tgMsg)
-		upbit.Run(*exchange)
-	case "con":
-		tgmanager.SendMsg(tgMsg)
-		coinone.Run(*exchange)
 	case "bin":
 		tgmanager.SendMsg(tgMsg)
 		binance.Run(*exchange)
-	case "kbt":
-		tgmanager.SendMsg(tgMsg)
-		korbit.Run(*exchange)
-	case "hbk":
-		tgmanager.SendMsg(tgMsg)
-		huobikorea.Run(*exchange)
 	case "bmb":
 		tgmanager.SendMsg(tgMsg)
 		bithumb.Run(*exchange)
+	case "con":
+		tgmanager.SendMsg(tgMsg)
+		coinone.Run(*exchange)
+	case "gpx":
+		tgmanager.SendMsg(tgMsg)
+		gopax.Run(*exchange)
+	case "hbk":
+		tgmanager.SendMsg(tgMsg)
+		huobikorea.Run(*exchange)
+	case "kbt":
+		tgmanager.SendMsg(tgMsg)
+		korbit.Run(*exchange)
+	case "upb":
+		tgmanager.SendMsg(tgMsg)
+		upbit.Run(*exchange)
 	}
 }

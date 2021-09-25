@@ -3,52 +3,57 @@ package tgmanager
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
-
-	"github.com/neosouler7/bookstore-go/commons"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var (
-	token         = commons.ReadConfig("Tg").(map[string]interface{})["token"].(string)
-	chat_ids      = commons.ReadConfig("Tg").(map[string]interface{})["chat_ids"].([]interface{})
-	location      *time.Location
 	StampMicro    = "Jan _2 15:04:05.000000"
-	errGetBot     = errors.New("[ERROR] error on init tgBot")
-	errSendMsg    = errors.New("[ERROR] error on sendMsg")
-	errGetUpdates = errors.New("[ERROR] error on get updates")
+	errGetBot     = errors.New("tg init failed")
+	errSendMsg    = errors.New("tg sendMsg failed")
+	errGetUpdates = errors.New("tg getUpdated failed")
+	t             *tgbotapi.BotAPI
+	once          sync.Once
+	b             bot
 )
 
-var t *tgbotapi.BotAPI
-var once sync.Once
-
-func init() {
-	location = commons.SetTimeZone("tg")
+type bot struct {
+	token    string
+	chat_ids []int
+	location *time.Location
 }
 
-func Bot() *tgbotapi.BotAPI {
+func InitBot(t string, c_ids []int, l *time.Location) {
+	b = bot{t, c_ids, l}
+}
+
+func (b *bot) Bot() *tgbotapi.BotAPI {
 	if t == nil {
 		once.Do(func() {
-			tgPointer, err := tgbotapi.NewBotAPI(token)
-			commons.HandleErr(err, errGetBot)
+			tgPointer, err := tgbotapi.NewBotAPI(b.token)
+			if err != nil {
+				log.Fatalln(errGetBot)
+			}
 			t = tgPointer
 			t.Debug = true
-
 		})
 	}
 	return t
 }
 
 func SendMsg(tgMsg string) {
-	now := time.Now().In(location).Format(StampMicro)
-	tgMsg = fmt.Sprintf("%s \n%s", tgMsg, now)
+	now := time.Now().In(b.location).Format(StampMicro)
+	tgMsg = fmt.Sprintf("%s \n\n%s", tgMsg, now)
 
-	for _, chat_id := range chat_ids {
-		msg := tgbotapi.NewMessage(int64(chat_id.(float64)), tgMsg)
-		_, err := Bot().Send(msg)
-		commons.HandleErr(err, errSendMsg)
+	for _, chat_id := range b.chat_ids {
+		msg := tgbotapi.NewMessage(int64(chat_id), tgMsg)
+		_, err := b.Bot().Send(msg)
+		if err != nil {
+			log.Fatalln(errSendMsg)
+		}
 	}
 }
 
@@ -57,13 +62,23 @@ func GetUpdates() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updateChannel, err := Bot().GetUpdatesChan(u)
-	commons.HandleErr(err, errGetUpdates)
+	updateChannel, err := b.Bot().GetUpdatesChan(u)
+	if err != nil {
+		log.Fatalln(errGetUpdates)
+	}
 
 	for update := range updateChannel {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
 		}
 		fmt.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+	}
+}
+
+func HandleErr(msg string, err error) {
+	if err != nil {
+		tgMsg := fmt.Sprintf("[error] %s : %s", msg, err.Error())
+		SendMsg(tgMsg)
+		log.Fatalln(err)
 	}
 }

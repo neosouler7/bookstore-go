@@ -7,66 +7,71 @@ import (
 	"sync"
 
 	"github.com/neosouler7/bookstore-go/commons"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 
 	"github.com/valyala/fasthttp"
 )
 
 var (
 	errHttpRequest = errors.New("[ERROR] http request")
+	c              *fasthttp.Client
+	once           sync.Once
 )
 
 const (
-	upbEndPoint string = "https://api.upbit.com"
-	conEndPoint string = "https://api.coinone.co.kr"
-	binEndPoint string = "https://api.binance.com"
-	kbtEndPoint string = "https://api.korbit.co.kr"
-	hbkEndPoint string = "https://api-cloud.huobi.co.kr"
-	bmbEndPoint string = "https://api.bithumb.com"
+	bin string = "https://api.binance.com"
+	bmb string = "https://api.bithumb.com"
+	con string = "https://api.coinone.co.kr"
+	gpx string = "https://api.gopax.co.kr"
+	hbk string = "https://api-cloud.huobi.co.kr"
+	kbt string = "https://api3.korbit.co.kr"
+	upb string = "https://api.upbit.com"
 )
 
-var c *fasthttp.Client
-var once sync.Once
+type epqs struct {
+	endPoint    string
+	queryString string
+}
 
 func fastHttpClient() *fasthttp.Client {
-	if c == nil {
-		once.Do(func() {
-			clientPointer := &fasthttp.Client{}
-			c = clientPointer
-		})
-	}
+	once.Do(func() {
+		clientPointer := &fasthttp.Client{}
+		c = clientPointer
+	})
 	return c
 }
 
-func getEndpointQuerystring(exchange string, market string, symbol string) (string, string) {
-	var endPoint, queryString string
+func (e *epqs) getEpqs(exchange, market, symbol string) {
 	switch exchange {
-	case "upb":
-		endPoint = upbEndPoint + "/v1/orderbook"
-		queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
-	case "con":
-		endPoint = conEndPoint + "/orderbook/"
-		queryString = fmt.Sprintf("currency=%s", strings.ToUpper(symbol))
 	case "bin":
-		endPoint = binEndPoint + "/api/v3/depth"
-		queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
-	case "kbt":
-		endPoint = kbtEndPoint + "/v1/orderbook"
-		queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
-	case "hbk":
-		endPoint = hbkEndPoint + "/market/depth"
-		queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
+		e.endPoint = bin + "/api/v3/depth"
+		e.queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
 	case "bmb":
-		endPoint = bmbEndPoint + "/public/orderbook/"
-		queryString = fmt.Sprintf("%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
+		e.endPoint = bmb + fmt.Sprintf("/public/orderbook/%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
+		e.queryString = "" // bmb does not use querystring
+	case "con":
+		e.endPoint = con + "/orderbook/"
+		e.queryString = fmt.Sprintf("currency=%s", strings.ToUpper(symbol))
+	case "gpx":
+		e.endPoint = gpx + fmt.Sprintf("/trading-pairs/%s-%s/book", strings.ToUpper(symbol), strings.ToUpper(market))
+		e.queryString = "" // gpx does not use querystring
+	case "hbk":
+		e.endPoint = hbk + "/market/depth"
+		e.queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
+	case "kbt":
+		e.endPoint = kbt + "/v1/orderbook"
+		e.queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
+	case "upb":
+		e.endPoint = upb + "/v1/orderbook"
+		e.queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
 	}
-	return endPoint, queryString
 }
 
-func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method string, pair string) {
+func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair string) {
 	var pairInfo = strings.Split(pair, ":")
-	var market = pairInfo[0]
-	var symbol = pairInfo[1]
-	endPoint, queryString := getEndpointQuerystring(exchange, market, symbol)
+	market, symbol := pairInfo[0], pairInfo[1]
+	epqs := &epqs{}
+	epqs.getEpqs(exchange, market, symbol)
 
 	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
 	defer func() {
@@ -75,24 +80,23 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 	}()
 
 	req.Header.SetMethod(fasthttp.MethodGet)
-	req.SetRequestURI(endPoint)
-	req.URI().SetQueryString(queryString)
+	req.SetRequestURI(epqs.endPoint)
+	req.URI().SetQueryString(epqs.queryString)
 
 	err := fastHttpClient().Do(req, res)
-	commons.HandleErr(err, errHttpRequest)
+	tgmanager.HandleErr(exchange, err)
 
-	body := res.Body()
+	body, statusCode := res.Body(), res.StatusCode()
+	if len(res.Body()) == 0 {
+		msg := fmt.Sprintf("%s empty response body\n", exchange)
+		tgmanager.HandleErr(msg, errHttpRequest)
+	}
+	if statusCode != fasthttp.StatusOK {
+		msg := fmt.Sprintf("%s restapi error with status: %d\n", exchange, statusCode)
+		tgmanager.HandleErr(msg, errHttpRequest)
+	}
+
 	switch exchange {
-	case "upb":
-		var rJson []interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		c <- rJson[0].(map[string]interface{})
-	case "con":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		c <- rJson.(map[string]interface{})
 	case "bin":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
@@ -101,7 +105,17 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 		rJson.(map[string]interface{})["market"] = market
 		rJson.(map[string]interface{})["symbol"] = symbol
 		c <- rJson.(map[string]interface{})
-	case "kbt":
+	case "bmb":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
+	case "con":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson.(map[string]interface{})
+	case "gpx":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
 
@@ -114,10 +128,18 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange string, method st
 		commons.Bytes2Json(body, &rJson)
 
 		c <- rJson.(map[string]interface{})
-	case "bmb":
+	case "kbt":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
 
-		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
+		// add market, symbol since no value on return
+		rJson.(map[string]interface{})["market"] = market
+		rJson.(map[string]interface{})["symbol"] = symbol
+		c <- rJson.(map[string]interface{})
+	case "upb":
+		var rJson []interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		c <- rJson[0].(map[string]interface{})
 	}
 }
