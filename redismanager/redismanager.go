@@ -86,13 +86,27 @@ func (ob *orderbook) setOrderbook(api string) {
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
 		prevTs = int(ts)
 	}
-	timeGap := int(ts) - prevTs.(int)
-	if timeGap > 0 {
+	currentTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
+	currentTs, _ := strconv.ParseInt(currentTsStr, 10, 64)
+
+	serverTsGap := int(ts) - prevTs.(int)
+	currentTsGap := int(currentTs) - prevTs.(int)
+
+	if serverTsGap > 0 {
 		err := client().Set(ctx, key, value, 0).Err()
 		tgmanager.HandleErr(ob.exchange, err)
 
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
-		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, timeGap, ob.ts, ob.askPrice, ob.bidPrice)
+		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, serverTsGap, ob.ts, ob.askPrice, ob.bidPrice)
+
+	} else if currentTsGap > 2000 { // 호가 변동 적은 코인 고려, 가장 최근 저장ts보다 2초 초과 시 서버 ts로 저장.
+		value := fmt.Sprintf("%s|%s|%s", currentTsStr, ob.askPrice, ob.bidPrice)
+		err := client().Set(ctx, key, value, 0).Err()
+		tgmanager.HandleErr(ob.exchange, err)
+
+		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(currentTs))
+		fmt.Printf("%s Ref %s %s %4dms %4s %4s %4s\n", now, api, key, currentTsGap, ob.ts, ob.askPrice, ob.bidPrice)
+
 	} else {
 		fmt.Printf("%s >>> %s %s\n", now, api, key)
 	}
