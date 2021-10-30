@@ -20,7 +20,6 @@ func GetObTargetPrice(volume string, orderbook interface{}) string {
 		ask = [[p1, v1], [p2, v2], [p3, v3] ...]
 		bid = [[p3, v3], [p2, v2], [p1, p1] ...]
 	*/
-	//
 	currentVolume := 0.0
 	targetVolume, err := strconv.ParseFloat(volume, 64)
 	tgmanager.HandleErr("GetObTargetPrice", err)
@@ -40,14 +39,23 @@ func GetObTargetPrice(volume string, orderbook interface{}) string {
 }
 
 func GetTargetVolumeMap(exchange string) map[string]string {
-	volumeMap := make(map[string]string)
+	m := make(map[string]string)
 	for _, p := range config.GetPairs(exchange) {
 		var pairInfo = strings.Split(p, ":")
 		market, symbol, targetVolume := pairInfo[0], pairInfo[1], pairInfo[2]
-
-		volumeMap[market+":"+symbol] = targetVolume
+		m[market+":"+symbol] = targetVolume
 	}
-	return volumeMap
+	return m
+}
+
+func GetPairMap(exchange string) map[string]interface{} {
+	m := make(map[string]interface{})
+	for _, pair := range config.GetPairs(exchange) {
+		var pairInfo = strings.Split(pair, ":")
+		market, symbol := pairInfo[0], pairInfo[1]
+		m[fmt.Sprintf("%s%s", symbol, market)] = map[string]string{"market": market, "symbol": symbol}
+	}
+	return m
 }
 
 func FormatTs(ts string) string {
@@ -90,15 +98,4 @@ func SetTimeZone(name string) *time.Location {
 	}
 	location, _ := time.LoadLocation(tz)
 	return location
-}
-
-func GetPairMap(exchange string) map[string]interface{} {
-	var pairs = config.GetPairs(exchange)
-	pairInterface := make(map[string]interface{})
-	for _, pair := range pairs {
-		var pairInfo = strings.Split(pair, ":")
-		market, symbol := pairInfo[0], pairInfo[1]
-		pairInterface[fmt.Sprintf("%s%s", symbol, market)] = map[string]string{"market": market, "symbol": symbol}
-	}
-	return pairInterface
 }

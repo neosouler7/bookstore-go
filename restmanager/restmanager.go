@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	errHttpRequest = errors.New("[ERROR] http request")
+	errHttpRequest = errors.New("http request")
 	c              *fasthttp.Client
 	once           sync.Once
 )
@@ -31,14 +31,6 @@ const (
 type epqs struct {
 	endPoint    string
 	queryString string
-}
-
-func fastHttpClient() *fasthttp.Client {
-	once.Do(func() {
-		clientPointer := &fasthttp.Client{}
-		c = clientPointer
-	})
-	return c
 }
 
 func (e *epqs) getEpqs(exchange, market, symbol string) {
@@ -65,6 +57,14 @@ func (e *epqs) getEpqs(exchange, market, symbol string) {
 		e.endPoint = upb + "/v1/orderbook"
 		e.queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
 	}
+}
+
+func fastHttpClient() *fasthttp.Client {
+	once.Do(func() {
+		clientPointer := &fasthttp.Client{}
+		c = clientPointer
+	})
+	return c
 }
 
 func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair string) {

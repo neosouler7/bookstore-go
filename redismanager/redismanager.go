@@ -99,7 +99,7 @@ func (ob *orderbook) setOrderbook(api string) {
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
 		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, serverTsGap, ob.ts, ob.askPrice, ob.bidPrice)
 
-	} else if currentTsGap > 2000 { // 호가 변동 적은 코인 고려, 가장 최근 저장ts보다 2초 초과 시 서버 ts로 저장.
+	} else if currentTsGap > 2000 { // refresh - considering low traded coin, set if allowed time has past
 		value := fmt.Sprintf("%s|%s|%s", currentTsStr, ob.askPrice, ob.bidPrice)
 		err := client().Set(ctx, key, value, 0).Err()
 		tgmanager.HandleErr(ob.exchange, err)

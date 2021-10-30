@@ -171,8 +171,7 @@ func rest(pairs []string) {
 			go SetOrderbook("R", exchange, rJson)
 		}
 
-		// 1번에 (1s / rateLimit)s 만큼 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
-		// ex) 1 / 10 s * 2 = 0.2s => 200ms
+		// to avoid 429
 		pairsLength := float64(len(pairs)) * buffer
 		time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
 	}

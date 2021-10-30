@@ -2,11 +2,25 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"reflect"
 
 	"github.com/neosouler7/bookstore-go/tgmanager"
 )
+
+var (
+	errNotStruct = errors.New("config not struct")
+	errNoField   = errors.New("field not found")
+)
+
+type config struct {
+	Redis     redis
+	Tg        tg
+	ApiKey    map[string]interface{}
+	RateLimit map[string]interface{}
+	Pairs     map[string]interface{}
+}
 
 type redis struct {
 	Host string
@@ -25,24 +39,16 @@ type apiKey struct {
 	Secret string
 }
 
-type config struct {
-	Redis     redis
-	Tg        tg
-	ApiKey    map[string]interface{}
-	RateLimit map[string]interface{}
-	Pairs     map[string]interface{}
-}
-
 func readConfig(obj interface{}, fieldName string) reflect.Value {
-	curStruct := reflect.ValueOf(obj).Elem()
-	if curStruct.Kind() != reflect.Struct {
-		panic("not struct")
+	s := reflect.ValueOf(obj).Elem()
+	if s.Kind() != reflect.Struct {
+		tgmanager.HandleErr("readConfig", errNotStruct)
 	}
-	curField := curStruct.FieldByName(fieldName)
-	if !curField.IsValid() {
-		panic("not found:" + fieldName)
+	f := s.FieldByName(fieldName)
+	if !f.IsValid() {
+		tgmanager.HandleErr("readConfig", errNoField)
 	}
-	return curField
+	return f
 }
 
 func getConfig(key string) interface{} {
@@ -74,9 +80,9 @@ func GetRateLimit(exchange string) (float64, float64) {
 }
 
 func GetPairs(exchange string) []string {
-	var after []string
-	for _, pair := range getConfig("Pairs").(map[string]interface{})[exchange].([]interface{}) {
-		after = append(after, pair.(string))
+	var pairs []string
+	for _, p := range getConfig("Pairs").(map[string]interface{})[exchange].([]interface{}) {
+		pairs = append(pairs, p.(string))
 	}
-	return after
+	return pairs
 }

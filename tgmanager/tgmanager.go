@@ -77,7 +77,7 @@ func GetUpdates() {
 
 func HandleErr(msg string, err error) {
 	if err != nil {
-		tgMsg := fmt.Sprintf("[error] %s : %s", msg, err.Error())
+		tgMsg := fmt.Sprintf("[error]\n%s\n→%s", msg, err.Error())
 		SendMsg(tgMsg)
 		log.Fatalln(err)
 	}
