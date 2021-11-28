@@ -66,17 +66,16 @@ func rest(pairs []string) {
 	for {
 		for _, pair := range pairs {
 			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
+
+			// to avoid 429
+			pairsLength := float64(len(pairs)) * buffer
+			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
 		}
 
 		for i := 0; i < len(pairs); i++ {
 			rJson := <-c
 			go SetOrderbook("R", exchange, rJson)
 		}
-
-		// 1번에 (1s / rateLimit)s 만큼 쉬어야 하고, 동시에 pair 만큼 api hit 하니, 그만큼 쉬어야함.
-		// ex) 1 / 10 s * 2 = 0.2s => 200ms
-		pairsLength := float64(len(pairs)) * buffer
-		time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
 	}
 }
 
