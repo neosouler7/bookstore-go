@@ -86,11 +86,11 @@ func (ob *orderbook) setOrderbook(api string) {
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
 		prevTs = int(ts)
 	}
-	currentTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
-	currentTs, _ := strconv.ParseInt(currentTsStr, 10, 64)
+	realTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
+	realTs, _ := strconv.ParseInt(realTsStr, 10, 64)
 
 	serverTsGap := int(ts) - prevTs.(int)
-	currentTsGap := int(currentTs) - prevTs.(int)
+	realTsGap := int(realTs) - prevTs.(int)
 
 	if serverTsGap > 0 {
 		err := client().Set(ctx, key, value, 0).Err()
@@ -99,13 +99,13 @@ func (ob *orderbook) setOrderbook(api string) {
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
 		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, serverTsGap, ob.ts, ob.askPrice, ob.bidPrice)
 
-	} else if currentTsGap > 2000 { // refresh - considering low traded coin, set if allowed time has past
-		value := fmt.Sprintf("%s|%s|%s", currentTsStr, ob.askPrice, ob.bidPrice)
-		err := client().Set(ctx, key, value, 0).Err()
-		tgmanager.HandleErr(ob.exchange, err)
+	} else if realTsGap > 800 { // refresh - considering low traded coin, set if allowed time has past
+		value2 := fmt.Sprintf("%s|%s|%s", realTsStr, ob.askPrice, ob.bidPrice)
+		err2 := client().Set(ctx, key, value2, 0).Err()
+		tgmanager.HandleErr(ob.exchange, err2)
 
-		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(currentTs))
-		fmt.Printf("%s Ref %s %s %4dms %4s %4s %4s\n", now, api, key, currentTsGap, ob.ts, ob.askPrice, ob.bidPrice)
+		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(realTs))
+		fmt.Printf("%s Ref %s %s %4dms %4s %4s %4s\n", now, api, key, realTsGap, realTsStr, ob.askPrice, ob.bidPrice)
 
 	} else {
 		fmt.Printf("%s >>> %s %s\n", now, api, key)
