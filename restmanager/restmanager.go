@@ -108,6 +108,7 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 	case "bmb":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
+		fmt.Println(rJson)
 
 		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
 	case "con":
