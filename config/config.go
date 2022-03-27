@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 
@@ -20,6 +21,7 @@ type config struct {
 	ApiKey    map[string]interface{}
 	RateLimit map[string]interface{}
 	Pairs     map[string]interface{}
+	Pairs2    map[string]interface{}
 }
 
 type redis struct {
@@ -79,10 +81,21 @@ func GetRateLimit(exchange string) (float64, float64) {
 	return c["buffer"].(float64), c[exchange].(float64)
 }
 
+// deprecated
+// func GetPairs(exchange string) []string {
+// 	var pairs []string
+// 	for _, p := range getConfig("Pairs").(map[string]interface{})[exchange].([]interface{}) {
+// 		pairs = append(pairs, p.(string))
+// 	}
+// 	return pairs
+// }
+
 func GetPairs(exchange string) []string {
 	var pairs []string
-	for _, p := range getConfig("Pairs").(map[string]interface{})[exchange].([]interface{}) {
-		pairs = append(pairs, p.(string))
+	for market, symbols := range getConfig("Pairs").(map[string]interface{})[exchange].(map[string]interface{}) {
+		for _, symbolInfo := range symbols.([]interface{}) {
+			pairs = append(pairs, fmt.Sprintf("%s:%s", market, symbolInfo))
+		}
 	}
 	return pairs
 }

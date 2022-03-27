@@ -24,8 +24,17 @@
         "kbt": 12,
         "upb": 10
     },
-    "Pairs": {
-        "upb": ["krw:eth:30", "krw:xrp:300"],
-        "con": ["krw:eth:30", "krw:xrp:300"]
+    "Pairs2": {
+        "upb": {
+            "krw": ["eth:2", "xrp:1000"],
+            "btc": ["eth:1.38", "xrp:0.098"]
+        },
+        "bmb": {
+            "krw": ["eth:2", "xrp:1000"]
+        },
+        "bin": {
+            "usdt": ["eth:0.1", "xrp:5000"],
+            "btc": ["eth:1.38", "xrp:0.098"]
+        }
     }
 }

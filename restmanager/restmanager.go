@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/tgmanager"
@@ -83,11 +84,9 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 	req.SetRequestURI(epqs.endPoint)
 	req.URI().SetQueryString(epqs.queryString)
 
-	err := fastHttpClient().Do(req, res)
+	statusCode, body, err := fastHttpClient().GetTimeout(nil, req.URI().String(), time.Duration(5)*time.Second)
 	tgmanager.HandleErr(exchange, err)
-
-	body, statusCode := res.Body(), res.StatusCode()
-	if len(res.Body()) == 0 {
+	if len(body) == 0 {
 		msg := fmt.Sprintf("%s empty response body\n", exchange)
 		tgmanager.HandleErr(msg, errHttpRequest)
 	}
@@ -95,6 +94,19 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 		msg := fmt.Sprintf("%s restapi error with status: %d\n", exchange, statusCode)
 		tgmanager.HandleErr(msg, errHttpRequest)
 	}
+
+	// err := fastHttpClient().Do(req, res)
+	// tgmanager.HandleErr(exchange, err)
+
+	// body, statusCode := res.Body(), res.StatusCode()
+	// if len(res.Body()) == 0 {
+	// 	msg := fmt.Sprintf("%s empty response body\n", exchange)
+	// 	tgmanager.HandleErr(msg, errHttpRequest)
+	// }
+	// if statusCode != fasthttp.StatusOK {
+	// 	msg := fmt.Sprintf("%s restapi error with status: %d\n", exchange, statusCode)
+	// 	tgmanager.HandleErr(msg, errHttpRequest)
+	// }
 
 	switch exchange {
 	case "bin":

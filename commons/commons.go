@@ -13,6 +13,8 @@ import (
 	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
+// TODO. btc market에서의 eth를 볼 때... 사토시 단위가 짤린다.
+// return 값 먼저 확인하고, 하지만 의심가는 부분은 여기. parsing하면서 유실되는 것으로 추정. 10^-8까지 필요.
 func GetObTargetPrice(volume string, orderbook interface{}) string {
 	/*
 		ask's price should go up, and bid should go down
