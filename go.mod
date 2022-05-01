@@ -1,6 +1,6 @@
 module github.com/neosouler7/bookstore-go
 
-go 1.17
+go 1.18
 
 require (
 	github.com/go-redis/redis/v8 v8.11.3
@@ -17,4 +17,5 @@ require (
 	github.com/klauspost/compress v1.13.4 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
