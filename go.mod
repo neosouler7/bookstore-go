@@ -14,4 +14,5 @@ require (
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.29.0
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
