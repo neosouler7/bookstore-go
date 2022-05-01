@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neosouler7/bookstore-go/alog"
 	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/config"
 	"github.com/neosouler7/bookstore-go/tgmanager"
@@ -93,8 +92,8 @@ func (ob *orderbook) setOrderbook(api string) {
 	serverTsGap := int(ts) - prevTs.(int)
 	realTsGap := int(realTs) - prevTs.(int)
 
-	var logType string
-	var logTs string
+	// var logType string
+	// var logTs string
 	if serverTsGap > 0 {
 		err := client().Set(ctx, key, value, 0).Err()
 		tgmanager.HandleErr(ob.exchange, err)
@@ -102,7 +101,7 @@ func (ob *orderbook) setOrderbook(api string) {
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
 		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, serverTsGap, ob.ts, ob.askPrice, ob.bidPrice)
 
-		logType = "N" // normal
+		// logType = "N" // normal
 
 	} else if realTsGap > 800 { // refresh - considering low traded coin, set if allowed time has past
 		value2 := fmt.Sprintf("%s|%s|%s", realTsStr, ob.askPrice, ob.bidPrice)
@@ -112,21 +111,21 @@ func (ob *orderbook) setOrderbook(api string) {
 		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(realTs))
 		fmt.Printf("%s Ref %s %s %4dms %4s %4s %4s\n", now, api, key, realTsGap, realTsStr, ob.askPrice, ob.bidPrice)
 
-		logType = "R" // refresh
+		// logType = "R" // refresh
 
 	} else {
 		fmt.Printf("%s >>> %s %s\n", now, api, key)
 	}
 
-	logTs = ob.ts
-	if logType == "R" {
-		logTs = realTsStr
-	}
+	// logTs = ob.ts
+	// if logType == "R" {
+	// 	logTs = realTsStr
+	// }
 
-	if logType == "R" || logType == "N" {
-		go alog.TraceLog(
-			ob.exchange,
-			fmt.Sprintf("%s|%s|%s|%s|%s|%s", logType, logTs, ob.market, ob.symbol, ob.askPrice, ob.bidPrice),
-		)
-	}
+	// if logType == "R" || logType == "N" {
+	// 	go alog.TraceLog(
+	// 		ob.exchange,
+	// 		fmt.Sprintf("%s|%s|%s|%s|%s|%s", logType, logTs, ob.market, ob.symbol, ob.askPrice, ob.bidPrice),
+	// 	)
+	// }
 }

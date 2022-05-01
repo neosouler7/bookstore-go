@@ -17,5 +17,4 @@ require (
 	github.com/klauspost/compress v1.13.4 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
