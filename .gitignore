@@ -3,6 +3,7 @@ dump.rdb
 .vscode
 Dockerfile
 *.sh
+*.log
 
 # Binaries for programs and plugins
 *.exe
