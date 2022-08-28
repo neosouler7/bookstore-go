@@ -1,6 +1,7 @@
 package binancef
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -57,17 +58,22 @@ func rest(pairs []string) {
 
 	for {
 		for _, pair := range pairs {
+			fmt.Println(pair)
 			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
 
 			// to avoid 429
-			pairsLength := float64(len(pairs)) * buffer
-			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
-		}
+			// pairsLength := float64(len(pairs)) * buffer
 
-		for i := 0; i < len(pairs); i++ {
+			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+
 			rJson := <-c
 			go SetOrderbook("R", exchange, rJson)
 		}
+
+		// for i := 0; i < len(pairs); i++ {
+		// 	rJson := <-c
+		// 	go SetOrderbook("R", exchange, rJson)
+		// }
 	}
 }
 
