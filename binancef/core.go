@@ -62,7 +62,6 @@ func rest(pairs []string) {
 			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
 
 			// to avoid 429
-			// pairsLength := float64(len(pairs)) * buffer
 
 			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
 
