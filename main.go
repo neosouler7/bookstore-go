@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/neosouler7/bookstore-go/binance"
+	"github.com/neosouler7/bookstore-go/binancef"
 	"github.com/neosouler7/bookstore-go/bithumb"
 	"github.com/neosouler7/bookstore-go/coinone"
 	"github.com/neosouler7/bookstore-go/commons"
@@ -47,6 +48,9 @@ func main() {
 	case "bin":
 		tgmanager.SendMsg(tgMsg)
 		binance.Run(*exchange)
+	case "binf":
+		tgmanager.SendMsg(tgMsg)
+		binancef.Run(*exchange)
 	case "bmb":
 		tgmanager.SendMsg(tgMsg)
 		bithumb.Run(*exchange)
