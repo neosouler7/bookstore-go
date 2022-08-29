@@ -31,7 +31,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		askResponse, bidResponse = rJson["asks"].([]interface{}), rJson["bids"].([]interface{})
 	case "W":
 		rData := rJson["data"]
-		askResponse, bidResponse = rData.(map[string]interface{})["asks"].([]interface{}), rData.(map[string]interface{})["bids"].([]interface{})
+		askResponse, bidResponse = rData.(map[string]interface{})["a"].([]interface{}), rData.(map[string]interface{})["b"].([]interface{})
 	}
 
 	var askSlice, bidSlice []interface{}

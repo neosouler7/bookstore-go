@@ -25,13 +25,14 @@ var (
 )
 
 const (
-	bin string = "stream.binance.com:9443"
-	bmb string = "pubwss.bithumb.com"
-	con string = "public-ws-api.coinone.co.kr"
-	gpx string = "wsapi.gopax.co.kr"
-	hbk string = "api-cloud.huobi.co.kr"
-	kbt string = "ws.korbit.co.kr"
-	upb string = "api.upbit.com"
+	bin  string = "stream.binance.com:9443"
+	binf string = "fstream.binance.com"
+	bmb  string = "pubwss.bithumb.com"
+	con  string = "public-ws-api.coinone.co.kr"
+	gpx  string = "wsapi.gopax.co.kr"
+	hbk  string = "api-cloud.huobi.co.kr"
+	kbt  string = "ws.korbit.co.kr"
+	upb  string = "api.upbit.com"
 )
 
 type hostPath struct {
@@ -74,6 +75,9 @@ func (h *hostPath) getHostPath(exchange string) {
 	switch exchange {
 	case "bin":
 		h.host = bin
+		h.path = "/stream"
+	case "binf":
+		h.host = binf
 		h.path = "/stream"
 	case "bmb":
 		h.host = bmb

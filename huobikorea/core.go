@@ -72,16 +72,13 @@ func rest(pairs []string) {
 	for {
 		for _, pair := range pairs {
 			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
-		}
 
-		for i := 0; i < len(pairs); i++ {
+			// to avoid 429
+			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+
 			rJson := <-c
 			go SetOrderbook("R", exchange, rJson)
 		}
-
-		// to avoid 429
-		pairsLength := float64(len(pairs)) * buffer
-		time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
 	}
 }
 

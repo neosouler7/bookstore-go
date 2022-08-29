@@ -162,17 +162,11 @@ func rest(pairs []string) {
 			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
 
 			// to avoid 429
-			pairsLength := float64(len(pairs)) * buffer
-			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*pairsLength*10*100)))
-		}
+			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
 
-		for i := 0; i < len(pairs); i++ {
 			rJson := <-c
-			// market, symbol := strings.ToLower(rJson["payment_currency"].(string)), strings.ToLower(rJson["order_currency"].(string))
-			// syncMap.Store(fmt.Sprintf("%s:%s", market, symbol), rJson)
 			go SetOrderbook("R", exchange, rJson)
 		}
-
 	}
 }
 
