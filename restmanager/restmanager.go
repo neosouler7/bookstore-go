@@ -26,7 +26,7 @@ const (
 	con  string = "https://api.coinone.co.kr"
 	gpx  string = "https://api.gopax.co.kr"
 	hbk  string = "https://api-cloud.huobi.co.kr"
-	kbt  string = "https://api3.korbit.co.kr"
+	kbt  string = "https://api.korbit.co.kr" // "https://api3.korbit.co.kr"
 	upb  string = "https://api.upbit.com"
 )
 
