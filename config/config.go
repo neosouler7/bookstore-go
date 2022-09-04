@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
-
-	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 var (
@@ -16,6 +15,7 @@ var (
 )
 
 type config struct {
+	Name      string
 	Redis     redis
 	Tg        tg
 	ApiKey    map[string]interface{}
@@ -44,11 +44,13 @@ type apiKey struct {
 func readConfig(obj interface{}, fieldName string) reflect.Value {
 	s := reflect.ValueOf(obj).Elem()
 	if s.Kind() != reflect.Struct {
-		tgmanager.HandleErr("readConfig", errNotStruct)
+		log.Fatalln(errNotStruct)
+		// tgmanager.HandleErr("readConfig", errNotStruct)
 	}
 	f := s.FieldByName(fieldName)
 	if !f.IsValid() {
-		tgmanager.HandleErr("readConfig", errNoField)
+		log.Fatalln(errNoField)
+		// tgmanager.HandleErr("readConfig", errNoField)
 	}
 	return f
 }
@@ -59,8 +61,16 @@ func getConfig(key string) interface{} {
 	defer file.Close()
 
 	c := config{}
-	tgmanager.HandleErr("getConfig", json.NewDecoder(file).Decode(&c))
+	err := json.NewDecoder(file).Decode(&c)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	// tgmanager.HandleErr("getConfig", json.NewDecoder(file).Decode(&c))
 	return readConfig(&c, key).Interface()
+}
+
+func GetName() string {
+	return getConfig("Name").(string)
 }
 
 func GetRedis() redis {

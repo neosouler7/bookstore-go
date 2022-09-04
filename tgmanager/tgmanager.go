@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/neosouler7/bookstore-go/config"
 )
 
 var (
@@ -77,7 +78,7 @@ func GetUpdates() {
 
 func HandleErr(msg string, err error) {
 	if err != nil {
-		tgMsg := fmt.Sprintf("[error]\n%s\n→%s", msg, err.Error())
+		tgMsg := fmt.Sprintf("[error %s]\n%s → %s", config.GetName(), msg, err.Error())
 		SendMsg(tgMsg)
 		log.Fatalln(err)
 	}
