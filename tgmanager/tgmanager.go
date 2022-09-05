@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/neosouler7/bookstore-go/config"
 )
@@ -16,6 +17,7 @@ var (
 	errGetBot     = errors.New("tg init failed")
 	errSendMsg    = errors.New("tg sendMsg failed")
 	errGetUpdates = errors.New("tg getUpdated failed")
+	errParseInt   = errors.New("error parse int")
 	t             *tgbotapi.BotAPI
 	once          sync.Once
 	b             bot
@@ -78,6 +80,7 @@ func GetUpdates() {
 
 func HandleErr(msg string, err error) {
 	if err != nil {
+		sentry.CaptureException(err)
 		tgMsg := fmt.Sprintf("[error %s]\n%s → %s", config.GetName(), msg, err.Error())
 		SendMsg(tgMsg)
 		log.Fatalln(err)
