@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/neosouler7/bookstore-go/config"
 )
@@ -80,7 +79,6 @@ func GetUpdates() {
 
 func HandleErr(msg string, err error) {
 	if err != nil {
-		sentry.CaptureException(err)
 		tgMsg := fmt.Sprintf("[error %s]\n%s → %s", config.GetName(), msg, err.Error())
 		SendMsg(tgMsg)
 		log.Fatalln(err)

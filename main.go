@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
-	"os"
-	"time"
 
-	"github.com/getsentry/sentry-go"
+	_ "net/http/pprof"
+	"os"
 
 	"github.com/neosouler7/bookstore-go/binance"
 	"github.com/neosouler7/bookstore-go/binancef"
@@ -30,18 +28,10 @@ func usage() {
 }
 
 func main() {
-	err := sentry.Init(sentry.ClientOptions{
-		Dsn: "https://a3801863e72346b8b22df3177b41d3f3@o1395002.ingest.sentry.io/6717420",
-		// Set TracesSampleRate to 1.0 to capture 100%
-		// of transactions for performance monitoring.
-		// We recommend adjusting this value in production,
-		TracesSampleRate: 1.0,
-	})
-	if err != nil {
-		log.Fatalf("sentry.Init: %s", err)
-	}
-	// Flush buffered events before the program terminates.
-	defer sentry.Flush(2 * time.Second)
+	// only for pprof
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
 
 	args := os.Args
 	if len(args) == 1 {
