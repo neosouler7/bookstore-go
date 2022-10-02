@@ -68,7 +68,7 @@ func main() {
 	case "bin":
 		tgmanager.SendMsg(tgMsg)
 		binance.Run(*exchange)
-	case "binf":
+	case "bif":
 		tgmanager.SendMsg(tgMsg)
 		binancef.Run(*exchange)
 	case "bmb":

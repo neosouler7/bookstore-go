@@ -20,14 +20,14 @@ var (
 )
 
 const (
-	bin  string = "https://api.binance.com"
-	binf string = "https://fapi.binance.com"
-	bmb  string = "https://api.bithumb.com"
-	con  string = "https://api.coinone.co.kr"
-	gpx  string = "https://api.gopax.co.kr"
-	hbk  string = "https://api-cloud.huobi.co.kr"
-	kbt  string = "https://api.korbit.co.kr" // "https://api3.korbit.co.kr"
-	upb  string = "https://api.upbit.com"
+	bin string = "https://api.binance.com"
+	bif string = "https://fapi.binance.com"
+	bmb string = "https://api.bithumb.com"
+	con string = "https://api.coinone.co.kr"
+	gpx string = "https://api.gopax.co.kr"
+	hbk string = "https://api-cloud.huobi.co.kr"
+	kbt string = "https://api.korbit.co.kr" // "https://api3.korbit.co.kr"
+	upb string = "https://api.upbit.com"
 )
 
 type epqs struct {
@@ -40,8 +40,8 @@ func (e *epqs) getEpqs(exchange, market, symbol string) {
 	case "bin":
 		e.endPoint = bin + "/api/v3/depth"
 		e.queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
-	case "binf":
-		e.endPoint = binf + "/fapi/v1/depth"
+	case "bif":
+		e.endPoint = bif + "/fapi/v1/depth"
 		e.queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
 	case "bmb":
 		e.endPoint = bmb + fmt.Sprintf("/public/orderbook/%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
@@ -122,7 +122,7 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 		rJson.(map[string]interface{})["symbol"] = symbol
 		c <- rJson.(map[string]interface{})
 
-	case "binf":
+	case "bif":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
 
