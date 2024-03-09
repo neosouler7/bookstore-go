@@ -45,7 +45,7 @@ func (e *epqs) getEpqs(exchange, market, symbol string) {
 		e.queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
 	case "bmb":
 		e.endPoint = bmb + fmt.Sprintf("/public/orderbook/%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
-		e.queryString = "" // bmb does not use querystring
+		e.queryString = fmt.Sprintf("count=10")
 	case "con":
 		e.endPoint = con + "/orderbook/"
 		e.queryString = fmt.Sprintf("currency=%s", strings.ToUpper(symbol))
@@ -91,11 +91,11 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 	statusCode, body, err := fastHttpClient().GetTimeout(nil, req.URI().String(), time.Duration(5)*time.Second)
 	tgmanager.HandleErr(exchange, err)
 	if len(body) == 0 {
-		msg := fmt.Sprintf("%s empty response body\n", exchange)
+		msg := fmt.Sprintf("%s empty response body", exchange)
 		tgmanager.HandleErr(msg, errHttpRequest)
 	}
 	if statusCode != fasthttp.StatusOK {
-		msg := fmt.Sprintf("%s restapi error with status: %d\n", exchange, statusCode)
+		msg := fmt.Sprintf("%s restapi error with status: %d", exchange, statusCode)
 		tgmanager.HandleErr(msg, errHttpRequest)
 	}
 
@@ -134,7 +134,6 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 	case "bmb":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
-		fmt.Println(rJson)
 
 		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
 	case "con":
