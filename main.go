@@ -61,7 +61,7 @@ func main() {
 		commons.SetTimeZone("Tg"),
 	)
 
-	tgMsg := fmt.Sprintf("[bookstore-go %s] %s", config.GetName(), *exchange)
+	tgMsg := fmt.Sprintf("## START %s %s", config.GetName(), *exchange)
 	switch *exchange {
 	default:
 		usage()
