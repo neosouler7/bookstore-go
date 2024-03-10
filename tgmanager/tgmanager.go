@@ -77,9 +77,9 @@ func GetUpdates() {
 	}
 }
 
-func HandleErr(msg string, err error) {
+func HandleErr(exchange string, err error) {
 	if err != nil {
-		tgMsg := fmt.Sprintf("[error %s]\n%s → %s", config.GetName(), msg, err.Error())
+		tgMsg := fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
 		SendMsg(tgMsg)
 		log.Fatalln(err)
 	}

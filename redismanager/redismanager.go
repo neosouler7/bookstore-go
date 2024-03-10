@@ -80,7 +80,7 @@ func (ob *orderbook) setOrderbook(api string) {
 	value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
 
 	ts, errParseInt := strconv.ParseInt(ob.ts, 10, 64)
-	tgmanager.HandleErr("redisParseInt", errParseInt)
+	tgmanager.HandleErr(ob.exchange, errParseInt)
 	prevTs, ok := syncMap.Load(fmt.Sprintf("%s:%s", ob.market, ob.symbol))
 	if !ok {
 		fmt.Printf("REDIS init set of %s:%s\n", ob.market, ob.symbol)
@@ -89,7 +89,7 @@ func (ob *orderbook) setOrderbook(api string) {
 	}
 	realTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
 	realTs, errParseInt := strconv.ParseInt(realTsStr, 10, 64)
-	tgmanager.HandleErr("redisParseInt", errParseInt)
+	tgmanager.HandleErr(ob.exchange, errParseInt)
 
 	serverTsGap := int(ts) - prevTs.(int)
 	realTsGap := int(realTs) - prevTs.(int)

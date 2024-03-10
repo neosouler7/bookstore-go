@@ -24,13 +24,13 @@ func GetObTargetPrice(volume string, orderbook interface{}) string {
 	*/
 	currentVolume := 0.0
 	targetVolume, err := strconv.ParseFloat(volume, 64)
-	tgmanager.HandleErr("GetObTargetPrice", err)
+	tgmanager.HandleErr("GetObTargetPrice1", err)
 
 	obSlice := orderbook.([]interface{})
 	for _, ob := range obSlice {
 		obInfo := ob.([2]string)
 		volume, err := strconv.ParseFloat(obInfo[1], 64)
-		tgmanager.HandleErr("GetObTargetPrice", err)
+		tgmanager.HandleErr("GetObTargetPrice2", err)
 
 		currentVolume += volume
 		if currentVolume >= targetVolume {

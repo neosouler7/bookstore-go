@@ -1,7 +1,6 @@
 config.json
 dump.rdb
 .vscode
-Dockerfile
 *.sh
 *.log
 

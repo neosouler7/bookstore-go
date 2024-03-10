@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	errWSRequest = errors.New("[ERROR] ws request")
+	errWSRequest = errors.New("websocket request")
 	exchange     string
 	pingMsg      string = "{\"requestType\": \"PING\"}"
 )
@@ -59,6 +59,8 @@ func receiveWs() {
 		case "ERROR":
 			responseErrCode := rJson["errorCode"]
 			responseErrMsg := rJson["message"]
+			tgmanager.HandleErr(exchange, errWSRequest)
+
 			fmt.Printf("coinone ws ERROR: %f %s\n", responseErrCode, responseErrMsg)
 			log.Fatalln(errWSRequest)
 		case "PONG":

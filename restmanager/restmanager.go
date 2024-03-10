@@ -14,9 +14,8 @@ import (
 )
 
 var (
-	errHttpRequest = errors.New("http request")
-	c              *fasthttp.Client
-	once           sync.Once
+	c    *fasthttp.Client
+	once sync.Once
 )
 
 const (
@@ -91,12 +90,12 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 	statusCode, body, err := fastHttpClient().GetTimeout(nil, req.URI().String(), time.Duration(5)*time.Second)
 	tgmanager.HandleErr(exchange, err)
 	if len(body) == 0 {
-		msg := fmt.Sprintf("%s empty response body", exchange)
-		tgmanager.HandleErr(msg, errHttpRequest)
+		errHttpResponseBody := errors.New("empty response body")
+		tgmanager.HandleErr(exchange, errHttpResponseBody)
 	}
 	if statusCode != fasthttp.StatusOK {
-		msg := fmt.Sprintf("%s restapi error with status: %d", exchange, statusCode)
-		tgmanager.HandleErr(msg, errHttpRequest)
+		errHttpResponseStatus := fmt.Errorf("restapi error with status %d", statusCode)
+		tgmanager.HandleErr(exchange, errHttpResponseStatus)
 	}
 
 	// err := fastHttpClient().Do(req, res)

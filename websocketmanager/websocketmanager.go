@@ -19,7 +19,7 @@ import (
 var (
 	w            *websocket.Conn
 	once         sync.Once
-	ErrReadMsg   = errors.New("[ERROR] reading msg on ws")
+	ErrReadMsg   = errors.New("reading msg on ws")
 	SubscribeMsg = "%s websocket subscribed!\n"
 	FilteredMsg  = "%s websocket msg filtered - %s\n"
 )
