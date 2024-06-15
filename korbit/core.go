@@ -81,8 +81,8 @@ func Run(e string) {
 	go receiveWs(pairs)
 
 	// rest
-	wg.Add(1)
-	go rest(pairs)
+	// wg.Add(1)
+	// go rest(pairs)
 
 	wg.Wait()
 }

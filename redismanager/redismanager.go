@@ -30,6 +30,7 @@ type orderbook struct {
 	askPrice string
 	bidPrice string
 	ts       string
+	bsTs     string
 }
 
 func init() {
@@ -69,55 +70,70 @@ func newOrderbook(exchange, market, symbol, ts string) *orderbook {
 		askPrice: "",
 		bidPrice: "",
 		ts:       ts,
+		bsTs:     "",
 	}
 	return ob
 }
 
 func (ob *orderbook) setOrderbook(api string) {
 	now := time.Now().In(location).Format(StampMicro)
-
-	key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
-	value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
-
-	ts, errParseInt := strconv.ParseInt(ob.ts, 10, 64)
+	obTs, errParseInt := strconv.ParseInt(ob.ts, 10, 64)
 	tgmanager.HandleErr(ob.exchange, errParseInt)
-	prevTs, ok := syncMap.Load(fmt.Sprintf("%s:%s", ob.market, ob.symbol))
+
+	// if init
+	prevObTs, ok := syncMap.Load(fmt.Sprintf("%s:%s", ob.market, ob.symbol))
 	if !ok {
 		fmt.Printf("REDIS init set of %s:%s\n", ob.market, ob.symbol)
-		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
-		prevTs = int(ts)
-	}
-	realTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
-	realTs, errParseInt := strconv.ParseInt(realTsStr, 10, 64)
-	tgmanager.HandleErr(ob.exchange, errParseInt)
-
-	serverTsGap := int(ts) - prevTs.(int)
-	realTsGap := int(realTs) - prevTs.(int)
-
-	// var logType string
-	// var logTs string
-	if serverTsGap > 0 {
-		err := client().Set(ctx, key, value, 0).Err()
-		tgmanager.HandleErr(ob.exchange, err)
-
-		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(ts))
-		fmt.Printf("%s Set %s %s %4dms %4s %4s %4s\n", now, api, key, serverTsGap, ob.ts, ob.askPrice, ob.bidPrice)
-
-		// logType = "N" // normal
-
-	} else if realTsGap > 800 { // refresh - considering low traded coin, set if allowed time has past
-		value2 := fmt.Sprintf("%s|%s|%s", realTsStr, ob.askPrice, ob.bidPrice)
-		err2 := client().Set(ctx, key, value2, 0).Err()
-		tgmanager.HandleErr(ob.exchange, err2)
-
-		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(realTs))
-		fmt.Printf("%s Ref %s %s %4dms %4s %4s %4s\n", now, api, key, realTsGap, realTsStr, ob.askPrice, ob.bidPrice)
-
-		// logType = "R" // refresh
-
+		syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(obTs))
+		// prevObTs = int(obTs)
 	} else {
-		fmt.Printf("%s >>> %s %s\n", now, api, key)
+		// get&set ts of bookstore
+		bsTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
+		bsTs, errParseInt := strconv.ParseInt(bsTsStr, 10, 64)
+		tgmanager.HandleErr(ob.exchange, errParseInt)
+
+		ob.bsTs = bsTsStr
+
+		// set redis
+		key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
+		value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+
+		obTsGap := int(obTs) - prevObTs.(int)
+		bsTsGap := int(bsTs) - int(obTs)
+
+		// set only when gap of bs / ob within range
+		if bsTsGap > 3*1000 {
+			errorMsg := fmt.Sprintf("## BS-OB LATENCY ##\n\n%s:%dms\nbs: %d / ob: %d\n", key, bsTsGap, bsTs, obTs)
+			fmt.Println(errorMsg)
+
+			// fmt.Printf("\npvTs: %d\n", prevObTs)
+			// fmt.Printf("obTs: %d\n", obTs)
+			// fmt.Printf("bsTs: %d\n", bsTs)
+
+			tgmanager.SendMsg(errorMsg)
+
+		} else {
+			if obTsGap > 0 {
+				err := client().Set(ctx, key, value, 0).Err()
+				tgmanager.HandleErr(ob.exchange, err)
+
+				syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(obTs))
+				fmt.Printf("%s Set %s %s %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+
+			} else {
+				fmt.Printf("%s >>> %s %s with obTsGap %4dms / bsTsGap %4dms\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
+			}
+		}
 	}
+	// } else if realTsGap > 800 { // refresh - considering low traded coin, set if allowed time has past
+	// 	value2 := fmt.Sprintf("%s|%s|%s", bsTsStr, ob.askPrice, ob.bidPrice)
+	// 	err2 := client().Set(ctx, key, value2, 0).Err()
+	// 	tgmanager.HandleErr(ob.exchange, err2)
+
+	// 	syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(realTs))
+	// 	fmt.Printf("%s Ref %s %s %4dms %4s %4s %4s %4s\n", now, api, key, realTsGap, bsTsStr, ob.askPrice, ob.bidPrice, ob.bsTs)
+
+	// 	// logType = "R" // refresh
 
 	// logTs = ob.ts
 	// if logType == "R" {

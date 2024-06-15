@@ -1,4 +1,5 @@
 config.json
+errors.json
 dump.rdb
 .vscode
 *.sh

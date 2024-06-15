@@ -31,7 +31,7 @@ const (
 	con string = "public-ws-api.coinone.co.kr"
 	gpx string = "wsapi.gopax.co.kr"
 	hbk string = "api-cloud.huobi.co.kr"
-	kbt string = "ws.korbit.co.kr"
+	kbt string = "ws2.korbit.co.kr"
 	upb string = "api.upbit.com"
 )
 
