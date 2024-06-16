@@ -21,6 +21,8 @@ var (
 	syncMap    sync.Map // to escape 'concurrent map read and map write' error
 	location   *time.Location
 	StampMicro = "Jan _2 15:04:05.000000"
+	errMsgCnt  = 0
+	errMsg     = ""
 )
 
 type orderbook struct {
@@ -96,21 +98,25 @@ func (ob *orderbook) setOrderbook(api string) {
 
 		// set redis
 		key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
-		value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+		// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+		value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
 
 		obTsGap := int(obTs) - prevObTs.(int)
 		bsTsGap := int(bsTs) - int(obTs)
 
 		// set only when gap of bs / ob within range
 		if bsTsGap > 3*1000 {
-			errorMsg := fmt.Sprintf("## BS-OB LATENCY ##\n\n%s:%dms\nbs: %d / ob: %d\n", key, bsTsGap, bsTs, obTs)
-			fmt.Println(errorMsg)
+			errMsgCnt += 1
+			errMsg += fmt.Sprintf("%s:%dms\nbs: %d / ob: %d\n\n", key, bsTsGap, bsTs, obTs)
+			if errMsgCnt == 10 {
+				tgmanager.SendMsg(fmt.Sprintf("%s %s", "## BS-OB LATENCY ##\n\n", errMsg))
+				errMsgCnt = 0
+				errMsg = ""
+			}
 
 			// fmt.Printf("\npvTs: %d\n", prevObTs)
 			// fmt.Printf("obTs: %d\n", obTs)
 			// fmt.Printf("bsTs: %d\n", bsTs)
-
-			tgmanager.SendMsg(errorMsg)
 
 		} else {
 			if obTsGap > 0 {

@@ -1,15 +1,14 @@
 package tgmanager
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/neosouler7/bookstore-go/config"
 )
 
 var (
@@ -24,6 +23,8 @@ var (
 	mu          sync.Mutex
 	errorFile   = "errors.json"
 	minInterval = 3 * time.Second // 최소 메시지 전송 간격
+	tgMsgCnt    = 0
+	tgMsg       = ""
 )
 
 type bot struct {
@@ -39,7 +40,7 @@ type ErrorLog struct {
 
 func InitBot(t string, c_ids []int, l *time.Location) {
 	b = bot{t, c_ids, l}
-	go processErrors()
+	// go processErrors()
 }
 
 func (b *bot) Bot() *tgbotapi.BotAPI {
@@ -87,106 +88,111 @@ func SendMsg(tgMsg string) {
 	}
 }
 
+func HandleErr(exchange string, err error) {
+	if err != nil {
+		tgMsgCnt += 1
+		tgMsg += fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
+		if tgMsgCnt == 5 {
+			SendMsg(tgMsg)
+			tgMsgCnt = 0
+			tgMsg = ""
+			log.Fatalln(err)
+		}
+	}
+}
+
 // func HandleErr(exchange string, err error) {
 // 	if err != nil {
-// 		tgMsg := fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
-// 		SendMsg(tgMsg)
+// 		tgMsg := fmt.Sprintf("%s:%s", exchange, err.Error())
+// 		appendError(tgMsg)
 // 		log.Fatalln(err)
 // 	}
 // }
 
-func HandleErr(exchange string, err error) {
-	if err != nil {
-		tgMsg := fmt.Sprintf("%s:%s", exchange, err.Error())
-		appendError(tgMsg)
-		log.Fatalln(err)
-	}
-}
+// func appendError(errorMsg string) {
+// 	mu.Lock()
+// 	defer mu.Unlock()
 
-func appendError(errorMsg string) {
-	mu.Lock()
-	defer mu.Unlock()
+// 	errorLog := readErrorLog()
+// 	errorLog.Errors = append(errorLog.Errors, errorMsg)
+// 	saveErrorLog(errorLog)
+// }
 
-	errorLog := readErrorLog()
-	errorLog.Errors = append(errorLog.Errors, errorMsg)
-	saveErrorLog(errorLog)
-}
+// func readErrorLog() ErrorLog {
+// 	var errorLog ErrorLog
 
-func readErrorLog() ErrorLog {
-	var errorLog ErrorLog
+// 	data, err := os.ReadFile(errorFile)
+// 	if err != nil {
+// 		if os.IsNotExist(err) {
+// 			return ErrorLog{}
+// 		}
+// 		log.Println("Error reading file:", err)
+// 		return ErrorLog{}
+// 	}
 
-	data, err := os.ReadFile(errorFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return ErrorLog{}
-		}
-		log.Println("Error reading file:", err)
-		return ErrorLog{}
-	}
+// 	err = json.Unmarshal(data, &errorLog)
+// 	if err != nil {
+// 		log.Println("Error unmarshaling JSON:", err)
+// 		return ErrorLog{}
+// 	}
 
-	err = json.Unmarshal(data, &errorLog)
-	if err != nil {
-		log.Println("Error unmarshaling JSON:", err)
-		return ErrorLog{}
-	}
+// 	return errorLog
+// }
 
-	return errorLog
-}
+// func saveErrorLog(errorLog ErrorLog) {
+// 	data, err := json.Marshal(errorLog)
+// 	if err != nil {
+// 		log.Println("Error marshaling JSON:", err)
+// 		return
+// 	}
 
-func saveErrorLog(errorLog ErrorLog) {
-	data, err := json.Marshal(errorLog)
-	if err != nil {
-		log.Println("Error marshaling JSON:", err)
-		return
-	}
+// 	err = os.WriteFile(errorFile, data, 0644)
+// 	if err != nil {
+// 		log.Println("Error writing file:", err)
+// 	}
+// }
 
-	err = os.WriteFile(errorFile, data, 0644)
-	if err != nil {
-		log.Println("Error writing file:", err)
-	}
-}
+// func processErrors() {
+// 	ticker := time.NewTicker(minInterval)
+// 	defer ticker.Stop()
 
-func processErrors() {
-	ticker := time.NewTicker(minInterval)
-	defer ticker.Stop()
+// 	for {
+// 		<-ticker.C
+// 		mu.Lock()
+// 		errorLog := readErrorLog()
+// 		if len(errorLog.Errors) > 0 {
+// 			if time.Since(time.Unix(0, errorLog.LatestSend)) >= minInterval {
+// 				log.Println("Sending errors to Telegram:", errorLog.Errors)
+// 				sendErrorsToTelegram(errorLog.Errors)
+// 				errorLog.Errors = []string{}
+// 				errorLog.LatestSend = time.Now().UnixNano()
+// 				saveErrorLog(errorLog)
+// 			}
+// 		}
+// 		mu.Unlock()
+// 	}
+// }
 
-	for {
-		<-ticker.C
-		mu.Lock()
-		errorLog := readErrorLog()
-		if len(errorLog.Errors) > 0 {
-			if time.Since(time.Unix(0, errorLog.LatestSend)) >= minInterval {
-				log.Println("Sending errors to Telegram:", errorLog.Errors)
-				sendErrorsToTelegram(errorLog.Errors)
-				errorLog.Errors = []string{}
-				errorLog.LatestSend = time.Now().UnixNano()
-				saveErrorLog(errorLog)
-			}
-		}
-		mu.Unlock()
-	}
-}
+// func sendErrorsToTelegram(errors []string) {
+// 	if len(errors) == 0 {
+// 		return
+// 	}
 
-func sendErrorsToTelegram(errors []string) {
-	if len(errors) == 0 {
-		return
-	}
+// 	message := fmt.Sprintf("## ERRORS ##\n\n%s\n\n%s", joinErrors(errors), time.Now().Format(StampMicro))
+// 	for _, chat_id := range b.chat_ids {
+// 		msg := tgbotapi.NewMessage(int64(chat_id), message)
+// 		log.Println("Sending message to Telegram:", message)
+// 		_, err := b.Bot().Send(msg)
+// 		if err != nil {
+// 			log.Println(errSendMsg, err)
+// 		}
+// 	}
+// }
 
-	message := fmt.Sprintf("## ERRORS ##\n\n%s\n\n%s", joinErrors(errors), time.Now().Format(StampMicro))
-	for _, chat_id := range b.chat_ids {
-		msg := tgbotapi.NewMessage(int64(chat_id), message)
-		log.Println("Sending message to Telegram:", message)
-		_, err := b.Bot().Send(msg)
-		if err != nil {
-			log.Println(errSendMsg, err)
-		}
-	}
-}
-
-func joinErrors(errors []string) string {
-	result := ""
-	for _, err := range errors {
-		result += err + "\n"
-	}
-	return result
-}
+// func joinErrors(errors []string) string {
+// 	result := ""
+// 	for _, err := range errors {
+// 		result += err + "\n"
+// 	}
+// 	return result
+// }
