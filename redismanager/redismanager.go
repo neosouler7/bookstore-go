@@ -98,8 +98,8 @@ func (ob *orderbook) setOrderbook(api string) {
 
 		// set redis
 		key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
-		// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
-		value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
+		value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+		// value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
 
 		obTsGap := int(obTs) - prevObTs.(int)
 		bsTsGap := int(bsTs) - int(obTs)
