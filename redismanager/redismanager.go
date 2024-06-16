@@ -105,30 +105,29 @@ func (ob *orderbook) setOrderbook(api string) {
 		bsTsGap := int(bsTs) - int(obTs)
 
 		// set only when gap of bs / ob within range
-		if bsTsGap > 3*1000 {
-			errMsgCnt += 1
-			errMsg += fmt.Sprintf("%s:%dms\nbs: %d / ob: %d\n\n", key, bsTsGap, bsTs, obTs)
-			if errMsgCnt == 10 {
-				tgmanager.SendMsg(fmt.Sprintf("%s %s", "## BS-OB LATENCY ##\n\n", errMsg))
-				errMsgCnt = 0
-				errMsg = ""
-			}
+		// if bsTsGap > 3*1000 {
+		// 	errMsgCnt += 1
+		// 	errMsg += fmt.Sprintf("%s:%dms\nbs: %d / ob: %d\n\n", key, bsTsGap, bsTs, obTs)
+		// 	if errMsgCnt == 10 {
+		// 		tgmanager.SendMsg(fmt.Sprintf("%s%s", "## BS-OB LATENCY ##\n\n", errMsg))
+		// 		errMsgCnt = 0
+		// 		errMsg = ""
+		// 	}
 
-			// fmt.Printf("\npvTs: %d\n", prevObTs)
-			// fmt.Printf("obTs: %d\n", obTs)
-			// fmt.Printf("bsTs: %d\n", bsTs)
+		// 	// fmt.Printf("\npvTs: %d\n", prevObTs)
+		// 	// fmt.Printf("obTs: %d\n", obTs)
+		// 	// fmt.Printf("bsTs: %d\n", bsTs)
+
+		// } else {
+		if obTsGap > 0 { // 거래소별 서버 ts 기준, 최신 호가만 저장
+			err := client().Set(ctx, key, value, 0).Err()
+			tgmanager.HandleErr(ob.exchange, err)
+
+			syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(obTs))
+			fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.askPrice, ob.bidPrice)
 
 		} else {
-			if obTsGap > 0 {
-				err := client().Set(ctx, key, value, 0).Err()
-				tgmanager.HandleErr(ob.exchange, err)
-
-				syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(obTs))
-				fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.askPrice, ob.bidPrice)
-
-			} else {
-				fmt.Printf("%s >>> %s %s %4dms %4dms (obTsGap / bsTsGap)\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
-			}
+			fmt.Printf("%s >>> %s %s %4dms %4dms (obTsGap / bsTsGap)\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
 		}
 	}
 	// } else if realTsGap > 800 { // refresh - considering low traded coin, set if allowed time has past
