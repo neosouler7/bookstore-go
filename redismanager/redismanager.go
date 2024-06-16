@@ -16,7 +16,7 @@ import (
 
 var (
 	ctx        = context.Background()
-	r          *redis.Client
+	rdb        *redis.Client
 	once       sync.Once
 	syncMap    sync.Map // to escape 'concurrent map read and map write' error
 	location   *time.Location
@@ -40,16 +40,16 @@ func init() {
 func client() *redis.Client {
 	once.Do(func() {
 		redisConfig := config.GetRedis()
-		r = redis.NewClient(&redis.Options{
+		rdb = redis.NewClient(&redis.Options{
 			Addr:     fmt.Sprintf("%s:%s", redisConfig.Host, redisConfig.Port),
 			Password: redisConfig.Pwd,
 			DB:       redisConfig.Db,
 		})
 
-		_, err := r.Ping(ctx).Result()
+		_, err := rdb.Ping(ctx).Result()
 		tgmanager.HandleErr("redis", err)
 	})
-	return r
+	return rdb
 }
 
 func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice []interface{}, ts string) {
@@ -96,7 +96,7 @@ func (ob *orderbook) setOrderbook(api string) {
 
 		// set redis
 		key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
-		value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
+		value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
 
 		obTsGap := int(obTs) - prevObTs.(int)
 		bsTsGap := int(bsTs) - int(obTs)
@@ -118,10 +118,10 @@ func (ob *orderbook) setOrderbook(api string) {
 				tgmanager.HandleErr(ob.exchange, err)
 
 				syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(obTs))
-				fmt.Printf("%s Set %s %s %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+				fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.askPrice, ob.bidPrice)
 
 			} else {
-				fmt.Printf("%s >>> %s %s with obTsGap %4dms / bsTsGap %4dms\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
+				fmt.Printf("%s >>> %s %s %4dms %4dms (obTsGap / bsTsGap)\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
 			}
 		}
 	}

@@ -35,37 +35,65 @@ func subscribeWs(pairs []string) {
 	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
-func receiveWs(pairs []string) {
+func receiveWs(pairs []string, done <-chan struct{}, msgQueue chan<- []byte) {
 	for {
-		_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-		tgmanager.HandleErr(exchange, err)
+		select {
+		case <-done:
+			return
+		default:
+			_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
+			tgmanager.HandleErr(exchange, err)
 
-		if strings.Contains(string(msgBytes), "connected") {
-			subscribeWs(pairs) // just once
-		} else if strings.Contains(string(msgBytes), "subscribe") {
-			continue
-		} else if strings.Contains(string(msgBytes), "push-orderbook") {
-			var rJson interface{}
-			commons.Bytes2Json(msgBytes, &rJson)
-			go SetOrderbook("W", exchange, rJson.(map[string]interface{}))
-		} else {
-			tgmanager.HandleErr(exchange, websocketmanager.ErrReadMsg)
+			if strings.Contains(string(msgBytes), "connected") {
+				subscribeWs(pairs) // just once
+			} else if strings.Contains(string(msgBytes), "subscribe") {
+				continue
+			} else if strings.Contains(string(msgBytes), "push-orderbook") {
+				msgQueue <- msgBytes
+			} else {
+				tgmanager.HandleErr(exchange, websocketmanager.ErrReadMsg)
+			}
 		}
 	}
 }
 
-func rest(pairs []string) {
-	c := make(chan map[string]interface{}, len(pairs)) // make buffered
-	buffer, rateLimit := config.GetRateLimit(exchange)
-
+func processWsMessages(done <-chan struct{}, msgQueue <-chan []byte) {
 	for {
-		for _, pair := range pairs {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
+		select {
+		case <-done:
+			return
+		case msgBytes := <-msgQueue:
+			var rJson interface{}
+			commons.Bytes2Json(msgBytes, &rJson)
+			go SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+		}
+	}
+}
 
-			// to avoid 429
-			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+func rest(pairs []string, done <-chan struct{}, restQueue chan<- map[string]interface{}) {
+	buffer, rateLimit := config.GetRateLimit(exchange)
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			for _, pair := range pairs {
+				go func(pair string) {
+					rJson := restmanager.FastHttpRequest2(exchange, "GET", pair)
+					restQueue <- rJson
+				}(pair)
+				time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+			}
+		}
+	}
+}
 
-			rJson := <-c
+func processRestResponses(done <-chan struct{}, restQueue <-chan map[string]interface{}) {
+	for {
+		select {
+		case <-done:
+			return
+		case rJson := <-restQueue:
 			go SetOrderbook("R", exchange, rJson)
 		}
 	}
@@ -75,14 +103,35 @@ func Run(e string) {
 	exchange = e
 	pairs := config.GetPairs(exchange)
 	var wg sync.WaitGroup
+	done := make(chan struct{})
+	wsQueue := make(chan []byte, 1)                            // WebSocket 메시지 큐
+	restQueue := make(chan map[string]interface{}, len(pairs)) // REST 응답 큐
 
 	// receive websocket msg
 	wg.Add(1)
-	go receiveWs(pairs)
+	go func() {
+		defer wg.Done()
+		receiveWs(pairs, done, wsQueue)
+	}()
+	// process websocket messages
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		processWsMessages(done, wsQueue)
+	}()
 
 	// rest
-	// wg.Add(1)
-	// go rest(pairs)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rest(pairs, done, restQueue)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		processRestResponses(done, restQueue)
+	}()
 
 	wg.Wait()
 }

@@ -153,18 +153,31 @@ var (
 // 	}
 // }
 
-func rest(pairs []string) {
-	c := make(chan map[string]interface{}, len(pairs)) // make buffered
+func rest(pairs []string, done <-chan struct{}, restQueue chan<- map[string]interface{}) {
 	buffer, rateLimit := config.GetRateLimit(exchange)
 
 	for {
-		for _, pair := range pairs {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
+		select {
+		case <-done:
+			return
+		default:
+			for _, pair := range pairs {
+				go func(pair string) {
+					rJson := restmanager.FastHttpRequest2(exchange, "GET", pair)
+					restQueue <- rJson
+				}(pair)
+				time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+			}
+		}
+	}
+}
 
-			// to avoid 429
-			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
-
-			rJson := <-c
+func processRestResponses(done <-chan struct{}, restQueue <-chan map[string]interface{}) {
+	for {
+		select {
+		case <-done:
+			return
+		case rJson := <-restQueue:
 			go SetOrderbook("R", exchange, rJson)
 		}
 	}
@@ -174,14 +187,28 @@ func Run(e string) {
 	exchange = e
 	pairs := config.GetPairs(exchange)
 	var wg sync.WaitGroup
+	done := make(chan struct{})
+	// wsQueue := make(chan []byte, 1)                            // WebSocket 메시지 큐
+	restQueue := make(chan map[string]interface{}, len(pairs)) // REST 응답 큐
 
 	// bmb returns CHANGED orderbooks
 	// temp WS remove
 	// wg.Add(1)
 	// go receiveWs(pairs)
 
+	// rest
 	wg.Add(1)
-	go rest(pairs)
+	go func() {
+		defer wg.Done()
+		rest(pairs, done, restQueue)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		processRestResponses(done, restQueue)
+	}()
 
 	wg.Wait()
+	close(done)
 }

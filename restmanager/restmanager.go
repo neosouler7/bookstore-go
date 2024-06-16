@@ -168,3 +168,55 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 		c <- rJson[0].(map[string]interface{})
 	}
 }
+
+func FastHttpRequest2(exchange, method, pair string) map[string]interface{} {
+	var pairInfo = strings.Split(pair, ":")
+	market, symbol := pairInfo[0], pairInfo[1]
+	epqs := &epqs{}
+	epqs.getEpqs(exchange, market, symbol)
+
+	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
+	defer func() {
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(res)
+	}()
+
+	req.Header.SetMethod(fasthttp.MethodGet)
+	req.SetRequestURI(epqs.endPoint)
+	req.URI().SetQueryString(epqs.queryString)
+
+	statusCode, body, err := fastHttpClient().GetTimeout(nil, req.URI().String(), time.Duration(5)*time.Second)
+	tgmanager.HandleErr(exchange, err)
+	if len(body) == 0 {
+		errHttpResponseBody := errors.New("empty response body")
+		tgmanager.HandleErr(exchange, errHttpResponseBody)
+	}
+	if statusCode != fasthttp.StatusOK {
+		errHttpResponseStatus := fmt.Errorf("restapi error with status %d", statusCode)
+		tgmanager.HandleErr(exchange, errHttpResponseStatus)
+	}
+
+	value := make(map[string]interface{})
+	switch exchange {
+	case "bmb":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		value = rJson.(map[string]interface{})["data"].(map[string]interface{})
+	case "kbt":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		// add market, symbol since no value on return
+		rJson.(map[string]interface{})["market"] = market
+		rJson.(map[string]interface{})["symbol"] = symbol
+
+		value = rJson.(map[string]interface{})
+	case "upb":
+		var rJson []interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		value = rJson[0].(map[string]interface{})
+	}
+	return value
+}
