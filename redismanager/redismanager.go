@@ -129,7 +129,7 @@ func (ob *orderbook) setOrderbook(api string) {
 			fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.bsTs, ob.askPrice, ob.bidPrice)
 
 		} else if obTsGap == 0 && bsTsGap > 0 { // 장기간 호가 변동 없을 시
-			value = fmt.Sprintf("%s|%s|%s|%s", prevObTs, ob.askPrice, ob.bidPrice, ob.bsTs)
+			value = fmt.Sprintf("%s|%s|%s|%s", fmt.Sprint(prevObTs), ob.askPrice, ob.bidPrice, ob.bsTs)
 			err := client().Set(ctx, key, value, 0).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
@@ -140,6 +140,7 @@ func (ob *orderbook) setOrderbook(api string) {
 			fmt.Printf("%s >>> %s %s %4dms %4dms (obTsGap / bsTsGap)\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
 		}
 	}
+
 	// } else if realTsGap > 800 { // refresh - considering low traded coin, set if allowed time has past
 	// 	value2 := fmt.Sprintf("%s|%s|%s", bsTsStr, ob.askPrice, ob.bidPrice)
 	// 	err2 := client().Set(ctx, key, value2, 0).Err()
