@@ -25,7 +25,7 @@ const (
 	con string = "https://api.coinone.co.kr"
 	gpx string = "https://api.gopax.co.kr"
 	hbk string = "https://api-cloud.huobi.co.kr"
-	kbt string = "https://api.korbit.co.kr" // "https://api3.korbit.co.kr"
+	kbt string = "https://api.korbit.co.kr"
 	upb string = "https://api.upbit.com"
 )
 
@@ -57,6 +57,8 @@ func (e *epqs) getEpqs(exchange, market, symbol string) {
 	case "kbt":
 		e.endPoint = kbt + "/v1/orderbook"
 		e.queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
+		// e.endPoint = kbt + "/v2/orderbook"
+		// e.queryString = fmt.Sprintf("symbol=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
 	case "upb":
 		e.endPoint = upb + "/v1/orderbook"
 		e.queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))

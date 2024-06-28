@@ -98,7 +98,8 @@ func (ob *orderbook) setOrderbook(api string) {
 
 		// set redis
 		key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
-		value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+		var value string
+		// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
 		// value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
 
 		obTsGap := int(obTs) - prevObTs.(int)
@@ -119,12 +120,21 @@ func (ob *orderbook) setOrderbook(api string) {
 		// 	// fmt.Printf("bsTs: %d\n", bsTs)
 
 		// } else {
-		if obTsGap > 0 { // 거래소별 서버 ts 기준, 최신 호가만 저장
+		if obTsGap > 0 { // 거래소별 서버 ts 기준, 최신 호가 저장
+			value = fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
 			err := client().Set(ctx, key, value, 0).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
 			syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(obTs))
-			fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.askPrice, ob.bidPrice)
+			fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.bsTs, ob.askPrice, ob.bidPrice)
+
+		} else if obTsGap == 0 && bsTsGap > 0 { // 장기간 호가 변동 없을 시
+			value = fmt.Sprintf("%s|%s|%s|%s", prevObTs, ob.askPrice, ob.bidPrice, ob.bsTs)
+			err := client().Set(ctx, key, value, 0).Err()
+			tgmanager.HandleErr(ob.exchange, err)
+
+			syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), prevObTs.(int))
+			fmt.Printf("%s Rnw %s %s %4dms %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.bsTs, ob.askPrice, ob.bidPrice)
 
 		} else {
 			fmt.Printf("%s >>> %s %s %4dms %4dms (obTsGap / bsTsGap)\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
