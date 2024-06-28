@@ -120,7 +120,8 @@ func (ob *orderbook) setOrderbook(api string) {
 		// 	// fmt.Printf("bsTs: %d\n", bsTs)
 
 		// } else {
-		if obTsGap > 0 { // 거래소별 서버 ts 기준, 최신 호가 저장
+
+		if obTsGap > 0 { // 거래소별 서버 ts 기준, 최신 호가 정보를 저장하고
 			value = fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
 			err := client().Set(ctx, key, value, 0).Err()
 			tgmanager.HandleErr(ob.exchange, err)
@@ -128,12 +129,11 @@ func (ob *orderbook) setOrderbook(api string) {
 			syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), int(obTs))
 			fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.bsTs, ob.askPrice, ob.bidPrice)
 
-		} else if obTsGap == 0 && bsTsGap > 0 { // 장기간 호가 변동 없을 시
-			value = fmt.Sprintf("%s|%s|%s|%s", fmt.Sprint(prevObTs), ob.askPrice, ob.bidPrice, ob.bsTs)
+		} else if obTsGap == 0 && bsTsGap > 0 { // 장기간 호가 변동 없을 시, bookstore의 bs를 저장한다 (syncMap은 저장하지 않음)
+			value = fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
 			err := client().Set(ctx, key, value, 0).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
-			syncMap.Store(fmt.Sprintf("%s:%s", ob.market, ob.symbol), prevObTs.(int))
 			fmt.Printf("%s Rnw %s %s %4dms %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.bsTs, ob.askPrice, ob.bidPrice)
 
 		} else {
