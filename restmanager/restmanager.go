@@ -55,10 +55,10 @@ func (e *epqs) getEpqs(exchange, market, symbol string) {
 		e.endPoint = hbk + "/market/depth"
 		e.queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
 	case "kbt":
-		e.endPoint = kbt + "/v1/orderbook"
-		e.queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
-		// e.endPoint = kbt + "/v2/orderbook"
-		// e.queryString = fmt.Sprintf("symbol=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
+		// e.endPoint = kbt + "/v1/orderbook"
+		// e.queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
+		e.endPoint = kbt + "/v2/orderbook"
+		e.queryString = fmt.Sprintf("symbol=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
 	case "upb":
 		e.endPoint = upb + "/v1/orderbook"
 		e.queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
