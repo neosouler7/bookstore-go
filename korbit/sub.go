@@ -1,7 +1,7 @@
 package korbit
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/neosouler7/bookstore-go/commons"
@@ -13,13 +13,12 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	switch api {
 	case "R":
 		market, symbol = rJson["market"].(string), rJson["symbol"].(string)
-		// ts = commons.FormatTs(fmt.Sprintf("%f", rJson["timestamp"].(float64)))
-		ts = commons.FormatTs(fmt.Sprintf("%f", rJson["data"].(map[string]interface{})["timestamp"].(float64)))
 	case "W":
 		market = strings.Split(rJson["data"].(map[string]interface{})["currency_pair"].(string), "_")[1]
 		symbol = strings.Split(rJson["data"].(map[string]interface{})["currency_pair"].(string), "_")[0]
-		ts = commons.FormatTs(fmt.Sprintf("%f", rJson["data"].(map[string]interface{})["timestamp"].(float64)))
 	}
+	timestamp := rJson["data"].(map[string]interface{})["timestamp"].(float64)
+	ts = commons.FormatTs(strconv.FormatFloat(timestamp, 'f', -1, 64))
 
 	var askResponse, bidResponse []interface{}
 	var askSlice, bidSlice []interface{}

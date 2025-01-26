@@ -29,6 +29,7 @@ func usage() {
 
 func main() {
 	// only for pprof
+	// 추가 실행 명령어: go tool pprof -http :8080 http://localhost:6060/debug/pprof/profile\?seconds\=120
 	// go func() {
 	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
 	// }()

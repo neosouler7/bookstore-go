@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -41,39 +42,56 @@ func GetObTargetPrice(volume string, orderbook interface{}) string {
 }
 
 func GetTargetVolumeMap(exchange string) map[string]string {
-	m := make(map[string]string)
-	for _, p := range config.GetPairs(exchange) {
-		var pairInfo = strings.Split(p, ":")
-		market, symbol, targetVolume := pairInfo[0], pairInfo[1], pairInfo[2]
+	pairs := config.GetPairs(exchange)
+	m := make(map[string]string, len(pairs)) // 초기 용량 설정
+
+	for _, p := range pairs {
+		idx1 := strings.Index(p, ":")
+		idx2 := strings.LastIndex(p, ":")
+
+		if idx1 < 0 || idx2 <= idx1 {
+			log.Printf("Invalid pair format: %s", p)
+			continue
+		}
+
+		market := p[:idx1]
+		symbol := p[idx1+1 : idx2]
+		targetVolume := p[idx2+1:]
 		m[market+":"+symbol] = targetVolume
 	}
 	return m
 }
 
 func GetPairMap(exchange string) map[string]interface{} {
-	m := make(map[string]interface{})
-	for _, pair := range config.GetPairs(exchange) {
-		var pairInfo = strings.Split(pair, ":")
-		market, symbol := pairInfo[0], pairInfo[1]
-		m[fmt.Sprintf("%s%s", symbol, market)] = map[string]string{"market": market, "symbol": symbol}
+	pairs := config.GetPairs(exchange)
+	m := make(map[string]interface{}, len(pairs)) // 초기 용량 설정
+
+	for _, pair := range pairs {
+		idx := strings.Index(pair, ":")
+		if idx < 0 {
+			log.Printf("Invalid pair format: %s", pair)
+			continue
+		}
+
+		market := pair[:idx]
+		symbol := pair[idx+1:]
+		m[symbol+market] = map[string]string{"market": market, "symbol": symbol}
 	}
 	return m
 }
 
 func FormatTs(ts string) string {
-	if len(ts) < 13 {
-		add := strings.Repeat("0", 13-len(ts))
-		return fmt.Sprintf("%s%s", ts, add)
-	} else if len(ts) == 13 { // if millisecond
+	tsLen := len(ts)
+
+	if tsLen < 13 {
+		var sb strings.Builder
+		sb.WriteString(ts)
+		sb.WriteString(strings.Repeat("0", 13-tsLen))
+		return sb.String()
+	} else if tsLen == 13 { // if millisecond
 		return ts
 	} else {
 		return ts[:13]
-		// tm, err := strconv.ParseInt(ts[:13], 10, 64)
-		// if err != nil {
-		// 	log.Fatalln(err)
-		// }
-		// convertedTime := time.Unix(0, tm*int64(time.Millisecond))
-		// return fmt.Sprintf("%d", convertedTime.UnixMilli()) // to millisecond
 	}
 }
 

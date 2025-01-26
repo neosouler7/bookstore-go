@@ -2,6 +2,7 @@ package upbit
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/neosouler7/bookstore-go/commons"
@@ -20,7 +21,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	var market, symbol = strings.ToLower(pairInfo[0]), strings.ToLower(pairInfo[1])
 
 	tsFloat := int(rJson["timestamp"].(float64))
-	ts := commons.FormatTs(fmt.Sprintf("%d", tsFloat))
+	ts := commons.FormatTs(strconv.Itoa(tsFloat))
 	orderbooks := rJson["orderbook_units"].([]interface{})
 
 	var askSlice, bidSlice []interface{}
