@@ -86,7 +86,7 @@ func processWsMessages(done <-chan struct{}, msgQueue <-chan []byte) {
 }
 
 func rest(pairs []string, done <-chan struct{}, restQueue chan<- map[string]interface{}) {
-	buffer, rateLimit := config.GetRateLimit(exchange)
+	// buffer, rateLimit := config.GetRateLimit(exchange)
 	for {
 		select {
 		case <-done:
@@ -97,7 +97,8 @@ func rest(pairs []string, done <-chan struct{}, restQueue chan<- map[string]inte
 					rJson := restmanager.FastHttpRequest2(exchange, "GET", pair)
 					restQueue <- rJson
 				}(pair)
-				time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+				// time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+				time.Sleep(time.Second * 2)
 			}
 		}
 	}

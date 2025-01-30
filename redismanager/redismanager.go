@@ -3,7 +3,9 @@ package redismanager
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,6 +20,7 @@ var (
 	ctx        = context.Background()
 	rdb        *redis.Client
 	once       sync.Once
+	subCheck   sync.Once
 	syncMap    sync.Map // to escape 'concurrent map read and map write' error
 	location   *time.Location
 	StampMicro = "Jan _2 15:04:05.000000"
@@ -76,7 +79,7 @@ func newOrderbook(exchange, market, symbol, ts string) *orderbook {
 }
 
 func (ob *orderbook) setOrderbook(api string) {
-	now := time.Now().In(location).Format(StampMicro)
+	// now := time.Now().In(location).Format(StampMicro)
 	obTs, errParseInt := strconv.ParseInt(ob.ts, 10, 64)
 	tgmanager.HandleErr(ob.exchange, errParseInt)
 
@@ -97,23 +100,55 @@ func (ob *orderbook) setOrderbook(api string) {
 		obTsGap := int(obTs) - prevObTs.(int)
 		bsTsGap := int(bsTs) - int(obTs) // 로컬 - 거래소
 
-		if obTsGap > 0 { // 거래소별 서버 ts 기준, 최신 호가 정보를 저장하고
-			value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
-			err := client().Set(ctx, key, value, 0).Err()
+		if obTsGap > 0 { // 거래소 서버 별 ts 기준, 최신 호가 정보를 저장하고
+			// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
+			value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
+			err := client().Publish(ctx, key, value).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
 			syncMap.Store(key, int(obTs))
-			fmt.Printf("%s Set %s %s %4dms %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.bsTs, ob.askPrice, ob.bidPrice)
 
-		} else if obTsGap == 0 && bsTsGap > 0 { // 장기간 호가 변동 없을 시, bookstore의 bs를 저장한다 (syncMap은 저장하지 않음)
-			value := fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
-			err := client().Set(ctx, key, value, 0).Err()
+			fmt.Printf("[pub] %-15s %s %4dms %s\n", key, value, obTsGap, api)
+
+		} else if obTsGap == 0 && bsTsGap > 2000 { // 장기간 호가 변동 없을 시, bookstore의 bs를 저장한다 (syncMap은 저장하지 않음)
+			// value := fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
+			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
+			value := fmt.Sprintf("%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice)
+			err := client().Publish(ctx, key, value).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
-			fmt.Printf("%s Rnw %s %s %4dms %4dms %4s %4s %4s %4s\n", now, api, key, obTsGap, bsTsGap, ob.ts, ob.bsTs, ob.askPrice, ob.bidPrice)
+			fmt.Printf("[rnw] %-15s %s %4dms %s\n", key, value, bsTsGap, api)
 
 		} else {
-			fmt.Printf("%s >>> %s %s %4dms %4dms (obTsGap / bsTsGap)\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
+			// fmt.Printf("%s >>> %s %s obTsGap: %4dms / bsTsGap: %4dms\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
 		}
+	}
+
+	subCheck.Do(func() {
+		subscribeCheck(ob.exchange)
+	})
+}
+
+func subscribeCheck(exchange string) {
+	pairs := config.GetPairs(exchange)
+	channels := make([]string, 0)
+	for _, pair := range pairs {
+		pairInfo := strings.Split(pair, ":")
+		channels = append(channels, fmt.Sprintf("ob:%s:%s:%s", exchange, pairInfo[0], pairInfo[1]))
+	}
+
+	pubsub := client().Subscribe(ctx, channels...)
+	defer pubsub.Close()
+
+	fmt.Printf("Subscribed to channels: %v\n", channels)
+
+	for {
+		msg, err := pubsub.ReceiveMessage(ctx)
+		if err != nil {
+			log.Fatalln("Error receiving message:", err)
+		}
+
+		fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
 	}
 }
