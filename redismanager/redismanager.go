@@ -3,9 +3,7 @@ package redismanager
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -101,10 +99,10 @@ func (ob *orderbook) setOrderbook(api string) {
 		bsTsGap := int(bsTs) - int(obTs)      // 로컬 서버 - 거래소 서버 ts 간 차이
 
 		if obTsGap > 0 { // 거래소 서버 별 ts 기준, 최신 호가 정보를 저장하고
-			// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
-			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
-			value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
-			err := client().Publish(ctx, key, value).Err()
+			value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+			err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
+			// value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
+			// err := client().Publish(ctx, key, value).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
 			syncMap.Store(key, int(obTs))
@@ -112,10 +110,10 @@ func (ob *orderbook) setOrderbook(api string) {
 			fmt.Printf("[pub] %-15s %s %4dms %s\n", key, value, obTsGap, api)
 
 		} else if obTsGap == 0 && bsTsGap > 2000 { // 장기간 호가 변동 없을 시, bookstore의 bs를 저장한다 (syncMap은 저장하지 않음)
-			// value := fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
-			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
-			value := fmt.Sprintf("%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice)
-			err := client().Publish(ctx, key, value).Err()
+			value := fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
+			err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
+			// value := fmt.Sprintf("%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice)
+			// err := client().Publish(ctx, key, value).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
 			fmt.Printf("[rnw] %-15s %s %4dms %s\n", key, value, bsTsGap, api)
@@ -125,30 +123,30 @@ func (ob *orderbook) setOrderbook(api string) {
 		}
 	}
 
-	subCheck.Do(func() {
-		subscribeCheck(ob.exchange)
-	})
+	// subCheck.Do(func() {
+	// 	subscribeCheck(ob.exchange)
+	// })
 }
 
-func subscribeCheck(exchange string) {
-	pairs := config.GetPairs(exchange)
-	channels := make([]string, 0)
-	for _, pair := range pairs {
-		pairInfo := strings.Split(pair, ":")
-		channels = append(channels, fmt.Sprintf("ob:%s:%s:%s", exchange, pairInfo[0], pairInfo[1]))
-	}
+// func subscribeCheck(exchange string) {
+// 	pairs := config.GetPairs(exchange)
+// 	channels := make([]string, 0)
+// 	for _, pair := range pairs {
+// 		pairInfo := strings.Split(pair, ":")
+// 		channels = append(channels, fmt.Sprintf("ob:%s:%s:%s", exchange, pairInfo[0], pairInfo[1]))
+// 	}
 
-	pubsub := client().Subscribe(ctx, channels...)
-	defer pubsub.Close()
+// 	pubsub := client().Subscribe(ctx, channels...)
+// 	defer pubsub.Close()
 
-	fmt.Printf("REDIS channels: %v\n", channels)
+// 	fmt.Printf("REDIS channels: %v\n", channels)
 
-	for {
-		msg, err := pubsub.ReceiveMessage(ctx)
-		if err != nil {
-			log.Fatalln("Error receiving message:", err)
-		}
+// 	for {
+// 		msg, err := pubsub.ReceiveMessage(ctx)
+// 		if err != nil {
+// 			log.Fatalln("Error receiving message:", err)
+// 		}
 
-		fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
-	}
-}
+// 		fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
+// 	}
+// }

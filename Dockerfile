@@ -23,5 +23,6 @@ RUN mkdir /etc/supervisor.d
 
 CMD ["/usr/bin/supervisord", "-n"]
 
-# docker build -t neosouler/bookstore-go:1.1.1 . --no-cache —-platform linux/amd64
-# docker push neosouler/bookstore-go:1.1.1
+# docker build -t neosouler/bookstore-go:1.1.0 . --no-cache —-platform linux/amd64
+# docker push neosouler/bookstore-go:1.1.0
+# yoon published: 1.1.1 -> so next version should be 1.1.2
