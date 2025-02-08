@@ -27,7 +27,7 @@ var (
 const (
 	bin string = "stream.binance.com:9443"
 	bif string = "fstream.binance.com"
-	bmb string = "pubwss.bithumb.com"
+	bmb string = "ws-api.bithumb.com"
 	con string = "public-ws-api.coinone.co.kr"
 	gpx string = "wsapi.gopax.co.kr"
 	hbk string = "api-cloud.huobi.co.kr"
@@ -81,7 +81,7 @@ func (h *hostPath) getHostPath(exchange string) {
 		h.path = "/stream"
 	case "bmb":
 		h.host = bmb
-		h.path = "/pub/ws"
+		h.path = "/websocket/v1"
 	case "con":
 		h.host = con
 		h.path = ""

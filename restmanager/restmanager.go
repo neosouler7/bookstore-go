@@ -43,8 +43,8 @@ func (e *epqs) getEpqs(exchange, market, symbol string) {
 		e.endPoint = bif + "/fapi/v1/depth"
 		e.queryString = fmt.Sprintf("limit=50&symbol=%s%s", strings.ToUpper(symbol), strings.ToUpper(market))
 	case "bmb":
-		e.endPoint = bmb + fmt.Sprintf("/public/orderbook/%s_%s", strings.ToUpper(symbol), strings.ToUpper(market))
-		e.queryString = fmt.Sprintf("count=10")
+		e.endPoint = bmb + "/v1/orderbook"
+		e.queryString = fmt.Sprintf("markets=%s-%s", strings.ToUpper(market), strings.ToUpper(symbol))
 	case "con":
 		e.endPoint = con + "/orderbook/"
 		e.queryString = fmt.Sprintf("currency=%s", strings.ToUpper(symbol))
@@ -201,10 +201,11 @@ func FastHttpRequest2(exchange, method, pair string) map[string]interface{} {
 	value := make(map[string]interface{})
 	switch exchange {
 	case "bmb":
-		var rJson interface{}
+		var rJson []interface{}
 		commons.Bytes2Json(body, &rJson)
 
-		value = rJson.(map[string]interface{})["data"].(map[string]interface{})
+		value = rJson[0].(map[string]interface{})
+
 	case "kbt":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)

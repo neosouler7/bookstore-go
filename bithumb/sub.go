@@ -2,6 +2,7 @@ package bithumb
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/neosouler7/bookstore-go/commons"
@@ -9,19 +10,28 @@ import (
 )
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
-	market, symbol := strings.ToLower(rJson["payment_currency"].(string)), strings.ToLower(rJson["order_currency"].(string))
-
-	ts := commons.FormatTs(fmt.Sprintf("%s", rJson["timestamp"]))
-
-	askResponse, bidResponse := rJson["asks"].([]interface{}), rJson["bids"].([]interface{})
-
+	var market, symbol string
 	var askSlice, bidSlice []interface{}
-	for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
-		askR, bidR := askResponse[i].(map[string]interface{}), bidResponse[i].(map[string]interface{})
-		ask := [2]string{fmt.Sprintf("%s", askR["price"]), fmt.Sprintf("%s", askR["quantity"])}
-		bid := [2]string{fmt.Sprintf("%s", bidR["price"]), fmt.Sprintf("%s", bidR["quantity"])}
-		askSlice = append(askSlice, ask)
-		bidSlice = append(bidSlice, bid)
+
+	marketKey := map[string]string{"R": "market", "W": "code"}[api]
+	pairInfo := strings.Split(rJson[marketKey].(string), "-")
+
+	market, symbol = strings.ToLower(pairInfo[0]), strings.ToLower(pairInfo[1])
+	tsFloat := int(rJson["timestamp"].(float64))
+	ts := commons.FormatTs(strconv.Itoa(tsFloat))
+
+	orderbookUnits := rJson["orderbook_units"].([]interface{})
+
+	for _, unit := range orderbookUnits {
+		orderbookUnit := unit.(map[string]interface{})
+		askSlice = append(askSlice, [2]string{
+			fmt.Sprintf("%f", orderbookUnit["ask_price"].(float64)),
+			fmt.Sprintf("%f", orderbookUnit["ask_size"].(float64)),
+		})
+		bidSlice = append(bidSlice, [2]string{
+			fmt.Sprintf("%f", orderbookUnit["bid_price"].(float64)),
+			fmt.Sprintf("%f", orderbookUnit["bid_size"].(float64)),
+		})
 	}
 
 	redismanager.PreHandleOrderbook(

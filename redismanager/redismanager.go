@@ -97,8 +97,8 @@ func (ob *orderbook) setOrderbook(api string) {
 		tgmanager.HandleErr(ob.exchange, errParseInt)
 
 		ob.bsTs = bsTsStr
-		obTsGap := int(obTs) - prevObTs.(int)
-		bsTsGap := int(bsTs) - int(obTs) // 로컬 - 거래소
+		obTsGap := int(obTs) - prevObTs.(int) // Ob ts 간 차이
+		bsTsGap := int(bsTs) - int(obTs)      // 로컬 서버 - 거래소 서버 ts 간 차이
 
 		if obTsGap > 0 { // 거래소 서버 별 ts 기준, 최신 호가 정보를 저장하고
 			// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
@@ -141,7 +141,7 @@ func subscribeCheck(exchange string) {
 	pubsub := client().Subscribe(ctx, channels...)
 	defer pubsub.Close()
 
-	fmt.Printf("Subscribed to channels: %v\n", channels)
+	fmt.Printf("REDIS channels: %v\n", channels)
 
 	for {
 		msg, err := pubsub.ReceiveMessage(ctx)
