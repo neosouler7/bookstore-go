@@ -27,13 +27,15 @@ var (
 )
 
 type orderbook struct {
-	exchange string
-	market   string
-	symbol   string
-	askPrice string
-	bidPrice string
-	ts       string
-	bsTs     string
+	exchange     string
+	market       string
+	symbol       string
+	safeAskPrice string
+	safeBidPrice string
+	bestAskPrice string
+	bestBidPrice string
+	ts           string
+	bsTs         string
 }
 
 func init() {
@@ -58,22 +60,29 @@ func client() *redis.Client {
 func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice []interface{}, ts string) {
 	ob := newOrderbook(exchange, market, symbol, ts)
 
-	targetVolume := commons.GetTargetVolumeMap(exchange)[market+":"+symbol]
-	askPrice, bidPrice := commons.GetObTargetPrice(targetVolume, askSlice), commons.GetObTargetPrice(targetVolume, bidSlice)
-	ob.askPrice, ob.bidPrice = askPrice, bidPrice
+	targetVolume := strings.Split(commons.GetTargetVolumeMap(exchange)[market+":"+symbol], "|")
+	safeTargetVolume, bestTargetVolume := targetVolume[0], targetVolume[1]
+
+	safeAskPrice, safeBidPrice := commons.GetObTargetPrice(safeTargetVolume, askSlice), commons.GetObTargetPrice(safeTargetVolume, bidSlice)
+	bestAskPrice, bestBidPrice := commons.GetObTargetPrice(bestTargetVolume, askSlice), commons.GetObTargetPrice(bestTargetVolume, bidSlice)
+
+	ob.safeAskPrice, ob.safeBidPrice = safeAskPrice, safeBidPrice
+	ob.bestAskPrice, ob.bestBidPrice = bestAskPrice, bestBidPrice
 
 	ob.setOrderbook(api)
 }
 
 func newOrderbook(exchange, market, symbol, ts string) *orderbook {
 	ob := &orderbook{
-		exchange: exchange,
-		market:   market,
-		symbol:   symbol,
-		askPrice: "",
-		bidPrice: "",
-		ts:       ts,
-		bsTs:     "",
+		exchange:     exchange,
+		market:       market,
+		symbol:       symbol,
+		safeAskPrice: "",
+		safeBidPrice: "",
+		bestAskPrice: "",
+		bestBidPrice: "",
+		ts:           ts,
+		bsTs:         "",
 	}
 	return ob
 }
@@ -103,7 +112,7 @@ func (ob *orderbook) setOrderbook(api string) {
 		if obTsGap > 0 { // 거래소 서버 별 ts 기준, 최신 호가 정보를 저장하고
 			// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
 			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
-			value := fmt.Sprintf("%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice)
+			value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
 			err := client().Publish(ctx, key, value).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 
@@ -114,7 +123,7 @@ func (ob *orderbook) setOrderbook(api string) {
 		} else if obTsGap == 0 && bsTsGap > 2000 { // 장기간 호가 변동 없을 시, bookstore의 bs를 저장한다 (syncMap은 저장하지 않음)
 			// value := fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
 			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
-			value := fmt.Sprintf("%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice)
+			value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
 			err := client().Publish(ctx, key, value).Err()
 			tgmanager.HandleErr(ob.exchange, err)
 

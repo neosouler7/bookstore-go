@@ -23,5 +23,5 @@ RUN mkdir /etc/supervisor.d
 
 CMD ["/usr/bin/supervisord", "-n"]
 
-# docker build -t neosouler/bookstore-go:1.1.2 . --no-cache —-platform linux/amd64
-# docker push neosouler/bookstore-go:1.1.2
+# docker build -t neosouler/bookstore-go:1.1.3 . --no-cache —-platform linux/amd64
+# docker push neosouler/bookstore-go:1.1.3
