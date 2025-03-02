@@ -17,13 +17,15 @@ import (
 )
 
 var (
-	ctx        = context.Background()
-	rdb        *redis.Client
-	once       sync.Once
-	subCheck   sync.Once
-	syncMap    sync.Map // to escape 'concurrent map read and map write' error
-	location   *time.Location
-	StampMicro = "Jan _2 15:04:05.000000"
+	ctx            = context.Background()
+	rdb            *redis.Client
+	once           sync.Once
+	subCheck       sync.Once
+	syncMap        sync.Map // to escape 'concurrent map read and map write' error
+	obUpdateCounts sync.Map
+	obUpdateMax    = 30
+	location       *time.Location
+	StampMicro     = "Jan _2 15:04:05.000000"
 )
 
 type orderbook struct {
@@ -97,7 +99,7 @@ func (ob *orderbook) setOrderbook(api string) {
 
 	// if init
 	if !ok {
-		fmt.Printf("REDIS init set of %s:%s\n", ob.market, ob.symbol)
+		fmt.Printf("[init] %s\n", key)
 		syncMap.Store(key, int(obTs))
 	} else {
 		// get&set ts of bookstore
@@ -109,34 +111,93 @@ func (ob *orderbook) setOrderbook(api string) {
 		obTsGap := int(obTs) - prevObTs.(int) // Ob ts 간 차이
 		bsTsGap := int(bsTs) - int(obTs)      // 로컬 서버 - 거래소 서버 ts 간 차이
 
-		if obTsGap > 0 { // 거래소 서버 별 ts 기준, 최신 호가 정보를 저장하고
-			// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
-			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
-			value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
-			err := client().Publish(ctx, key, value).Err()
-			tgmanager.HandleErr(ob.exchange, err)
+		countInterface, _ := obUpdateCounts.LoadOrStore(key, 0)
+		obUpdateCount := countInterface.(int)
+		// fmt.Printf("%s %d\n", key, obUpdateCount)
 
-			syncMap.Store(key, int(obTs))
+		var value string
+		switch api {
+		case "W": // websocket은 서버의 ts를 저장하고
+			if obTsGap > 0 {
+				value = fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
+				syncMap.Store(key, int(obTs))
 
-			fmt.Printf("[pub] %-15s %s %4dms %s\n", key, value, obTsGap, api)
+				err := client().Publish(ctx, key, value).Err()
+				tgmanager.HandleErr(ob.exchange, err)
 
-		} else if obTsGap == 0 && bsTsGap > 2000 { // 장기간 호가 변동 없을 시, bookstore의 bs를 저장한다 (syncMap은 저장하지 않음)
-			// value := fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
-			// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
-			value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
-			err := client().Publish(ctx, key, value).Err()
-			tgmanager.HandleErr(ob.exchange, err)
+				obUpdateCount++
+			}
+		case "R": // rest는 로컬의 ts를 저장한다
+			if obTsGap == 0 && bsTsGap > 100 {
+				value = fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.bsTs)
+				syncMap.Store(key, int(obTs))
 
-			fmt.Printf("[rnw] %-15s %s %4dms %s\n", key, value, bsTsGap, api)
+				err := client().Publish(ctx, key, value).Err()
+				tgmanager.HandleErr(ob.exchange, err)
 
-		} else {
-			// fmt.Printf("%s >>> %s %s obTsGap: %4dms / bsTsGap: %4dms\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
+				obUpdateCount++
+			}
+		}
+
+		obUpdateCounts.Store(key, obUpdateCount)
+
+		if obUpdateCount == obUpdateMax {
+			fmt.Printf("[pub] %-15s %s %4dms %4dms %s\n", key, value, obTsGap, bsTsGap, api)
+			obUpdateCounts.Store(key, 1)
 		}
 	}
 
 	subCheck.Do(func() {
 		subscribeCheck(ob.exchange)
 	})
+	// if obTsGap > 0 { // 최신 호가에 대해서만
+	// 	var value string
+	// 	switch api {
+	// 	case "W": // websocket은 서버의 ts를 저장하고
+	// 		value = fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
+	// 		syncMap.Store(key, int(obTs))
+	// 	case "R": // rest는 로컬의 ts를 저장한다
+	// 		value = fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.bsTs)
+	// 		// syncMap.Store(key, int(bsTs))
+	// 	}
+	// 	err := client().Publish(ctx, key, value).Err()
+	// 	tgmanager.HandleErr(ob.exchange, err)
+
+	// 	fmt.Printf("[pub] %-15s %s %4dms %s\n", key, value, obTsGap, api)
+
+	// } else if obTsGap == 0 && bsTsGap > 1000 { // 장기간 호가 변동 없을 시, 로컬 ts를 저장한다 (syncMap은 저장하지 않음)
+	// 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.bsTs)
+	// 	err := client().Publish(ctx, key, value).Err()
+	// 	tgmanager.HandleErr(ob.exchange, err)
+
+	// 	// syncMap.Store(key, int(bsTs))
+
+	// 	fmt.Printf("[rnw] %-15s %s %4dms %s\n", key, value, bsTsGap, api)
+	// }
+
+	// if obTsGap > 0 { // 거래소 서버 별 ts 기준, 최신 호가 정보를 저장하고
+	// 	// value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.askPrice, ob.bidPrice, ob.bsTs)
+	// 	// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
+	// 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
+	// 	err := client().Publish(ctx, key, value).Err()
+	// 	tgmanager.HandleErr(ob.exchange, err)
+
+	// 	syncMap.Store(key, int(obTs))
+
+	// 	fmt.Printf("[pub] %-15s %s %4dms %s\n", key, value, obTsGap, api)
+
+	// } else if obTsGap == 0 && bsTsGap > 2000 { // 장기간 호가 변동 없을 시, bookstore의 bs를 저장한다 (syncMap은 저장하지 않음)
+	// 	// value := fmt.Sprintf("%s|%s|%s|%s", ob.bsTs, ob.askPrice, ob.bidPrice, ob.bsTs)
+	// 	// err := client().Set(ctx, key, value, 0).Err() // change set to pub/sub
+	// 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, ob.ts)
+	// 	err := client().Publish(ctx, key, value).Err()
+	// 	tgmanager.HandleErr(ob.exchange, err)
+
+	// 	fmt.Printf("[rnw] %-15s %s %4dms %s\n", key, value, bsTsGap, api)
+
+	// } else {
+	// 	// fmt.Printf("%s >>> %s %s obTsGap: %4dms / bsTsGap: %4dms\n", now, api, key, obTsGap, bsTsGap) // 이전의 goroutine이 도달하는 경우 obTsGap 음수값 리턴 가능
+	// }
 }
 
 func subscribeCheck(exchange string) {
@@ -150,14 +211,13 @@ func subscribeCheck(exchange string) {
 	pubsub := client().Subscribe(ctx, channels...)
 	defer pubsub.Close()
 
-	fmt.Printf("REDIS channels: %v\n", channels)
+	fmt.Printf("[channels] %v\n", channels)
 
 	for {
-		msg, err := pubsub.ReceiveMessage(ctx)
+		_, err := pubsub.ReceiveMessage(ctx)
 		if err != nil {
 			log.Fatalln("Error receiving message:", err)
 		}
-
-		fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
+		// fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
 	}
 }
