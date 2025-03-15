@@ -97,7 +97,7 @@ func rest(pairs []string, done <-chan struct{}, restQueue chan<- map[string]inte
 					restQueue <- rJson
 				}(pair)
 				// time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
-				time.Sleep(time.Millisecond * 500)
+				time.Sleep(time.Millisecond * 200)
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package korbit
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -15,44 +16,51 @@ import (
 
 var (
 	exchange string
+	pingMsg  string = "PING"
 )
 
-func subscribeWs(pairs []string) {
+func pongWs(done <-chan struct{}) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			websocketmanager.SendMsg(exchange, pingMsg)
+		case <-done:
+			return
+		}
+	}
+}
+
+func subscribeWs(pairs []string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	time.Sleep(time.Second * 1)
+
 	var streamSlice []string
 	for _, pair := range pairs {
 		var pairInfo = strings.Split(pair, ":")
 		market, symbol := strings.ToLower(pairInfo[0]), strings.ToLower(pairInfo[1])
 
-		streamSlice = append(streamSlice, fmt.Sprintf("%s_%s", symbol, market))
+		streamSlice = append(streamSlice, fmt.Sprintf("\"%s_%s\"", symbol, market))
 	}
-
-	ts := time.Now().UnixNano() / 100000 / 10
-	streams := fmt.Sprintf("\"orderbook:%s\"", strings.Join(streamSlice, ","))
-	msg := fmt.Sprintf("{\"accessToken\": \"null\", \"timestamp\": \"%d\", \"event\": \"korbit:subscribe\", \"data\": {\"channels\": [%s]}}", ts, streams)
+	msg := fmt.Sprintf("[{\"method\": \"subscribe\", \"type\": \"orderbook\", \"symbols\": [%s]}]", strings.Join(streamSlice, ","))
 
 	websocketmanager.SendMsg(exchange, msg)
 	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
-func receiveWs(pairs []string, done <-chan struct{}, msgQueue chan<- []byte) {
+func receiveWs(done <-chan struct{}, msgQueue chan<- []byte) {
 	for {
 		select {
 		case <-done:
 			return
 		default:
 			_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-			tgmanager.HandleErr(exchange, err)
-
-			if strings.Contains(string(msgBytes), "connected") {
-				subscribeWs(pairs) // just once
-			} else if strings.Contains(string(msgBytes), "subscribe") {
-				continue
-			} else if strings.Contains(string(msgBytes), "push-orderbook") {
-				msgQueue <- msgBytes
-			} else {
-				tgmanager.HandleErr(exchange, websocketmanager.ErrReadMsg)
+			if err != nil {
+				tgmanager.HandleErr(exchange, err)
 			}
+			msgQueue <- msgBytes
 		}
 	}
 }
@@ -63,9 +71,15 @@ func processWsMessages(done <-chan struct{}, msgQueue <-chan []byte) {
 		case <-done:
 			return
 		case msgBytes := <-msgQueue:
-			var rJson interface{}
-			commons.Bytes2Json(msgBytes, &rJson)
-			go SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+			if strings.Contains(string(msgBytes), "orderbook") {
+				var rJson interface{}
+				commons.Bytes2Json(msgBytes, &rJson)
+				go SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+			} else if strings.Contains(string(msgBytes), "pong") {
+				fmt.Println("PONG")
+			} else {
+				log.Fatalln(string(msgBytes))
+			}
 		}
 	}
 }
@@ -83,7 +97,7 @@ func rest(pairs []string, done <-chan struct{}, restQueue chan<- map[string]inte
 					restQueue <- rJson
 				}(pair)
 				// time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
-				time.Sleep(time.Millisecond * 500)
+				time.Sleep(time.Millisecond * 200)
 			}
 		}
 	}
@@ -108,11 +122,22 @@ func Run(e string) {
 	wsQueue := make(chan []byte, 1)                            // WebSocket 메시지 큐
 	restQueue := make(chan map[string]interface{}, len(pairs)) // REST 응답 큐
 
+	// ping
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		pongWs(done)
+	}()
+
+	// subscribe websocket stream
+	wg.Add(1)
+	go subscribeWs(pairs, &wg)
+
 	// receive websocket msg
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		receiveWs(pairs, done, wsQueue)
+		receiveWs(done, wsQueue)
 	}()
 	// process websocket messages
 	wg.Add(1)

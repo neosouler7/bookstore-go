@@ -31,7 +31,7 @@ const (
 	con string = "public-ws-api.coinone.co.kr"
 	gpx string = "wsapi.gopax.co.kr"
 	hbk string = "api-cloud.huobi.co.kr"
-	kbt string = "ws2.korbit.co.kr"
+	kbt string = "ws-api.korbit.co.kr" // "ws2.korbit.co.kr"
 	upb string = "api.upbit.com"
 )
 
@@ -93,7 +93,7 @@ func (h *hostPath) getHostPath(exchange string) {
 		h.path = "/ws"
 	case "kbt":
 		h.host = kbt
-		h.path = "/v1/user/push"
+		h.path = "/v2/public" // "/v1/user/push"
 	case "upb":
 		h.host = upb
 		h.path = "/websocket/v1"
