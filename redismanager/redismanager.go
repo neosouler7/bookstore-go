@@ -148,7 +148,7 @@ func (ob *orderbook) setOrderbook(api string) {
 	})
 }
 
-const sampleRate = 1       // 샘플링 비율 (예: 1000개의 로그 중 1개만 출력)
+const sampleRate = 1000    // 샘플링 비율 (예: 1000개의 로그 중 1개만 출력)
 const initialLogCount = 10 // 초기 출력 카운트 (처음 10개는 무조건 출력)
 var logCount int32 = 0
 
