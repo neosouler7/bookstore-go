@@ -130,11 +130,11 @@ func (ob *orderbook) setOrderbook(api string) {
 	var targetTs string
 	switch api {
 	case "W":
-		if serverLatency > 0 {
-			targetTs = ob.ts
-			sMap.Store(key, targetTs)
-			publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api)
-		}
+		// if serverLatency > 0 { // 과거값 버리는 로직 임시 제거(25.3.26)
+		targetTs = ob.ts
+		sMap.Store(key, targetTs)
+		publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api)
+		// }
 	case "R":
 		if serverLatency == 0 && localLatency > 100 {
 			targetTs = currentTsStr
@@ -148,8 +148,8 @@ func (ob *orderbook) setOrderbook(api string) {
 	})
 }
 
-const sampleRate = 1000    // 샘플링 비율 (예: 1000개의 로그 중 1개만 출력)
-const initialLogCount = 10 // 초기 출력 카운트 (처음 10개는 무조건 출력)
+const sampleRate = 1000      // 샘플링 비율 (예: 1000개의 로그 중 1개만 출력)
+const initialLogCount = 1000 // 초기 출력 카운트 (처음 10개는 무조건 출력)
 var logCount int32 = 0
 
 func sampledLog(format string, v ...interface{}) {
