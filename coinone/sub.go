@@ -1,7 +1,9 @@
 package coinone
 
 import (
-	"fmt"
+	"log"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/neosouler7/bookstore-go/commons"
@@ -9,38 +11,41 @@ import (
 )
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
-	// con differs "market-symbol" receive form by api type
-	var market, symbol, ts string
-	var askResponse, bidResponse []interface{}
-	var askSlice, bidSlice []interface{}
+	var rData map[string]interface{}
 	switch api {
 	case "R":
-		market = "krw"
-		symbol = rJson["currency"].(string)
-
-		tsString := rJson["timestamp"].(string)
-		ts = commons.FormatTs(tsString)
-
-		askResponse = rJson["ask"].([]interface{})
-		bidResponse = rJson["bid"].([]interface{})
+		rData = rJson
 	case "W":
-		rTopic := rJson["topic"].(map[string]interface{})
-		market = strings.ToLower(rTopic["priceCurrency"].(string))
-		symbol = strings.ToLower(rTopic["productCurrency"].(string))
-
-		rData := rJson["data"]
-		tsFloat := int(rData.(map[string]interface{})["timestamp"].(float64))
-		ts = commons.FormatTs(fmt.Sprintf("%d", tsFloat))
-
-		askResponse = rData.(map[string]interface{})["ask"].([]interface{})
-		bidResponse = rData.(map[string]interface{})["bid"].([]interface{})
+		rData = rJson["data"].(map[string]interface{})
 	}
+	market, symbol := strings.ToLower(rData["quote_currency"].(string)), strings.ToLower(rData["target_currency"].(string))
+	tsFloat := int(rData["timestamp"].(float64))
+	ts := commons.FormatTs(strconv.Itoa(tsFloat))
+
+	var askResponse, bidResponse []interface{}
+	var askSlice, bidSlice []interface{}
+
+	askResponse = rData["asks"].([]interface{})
+	bidResponse = rData["bids"].([]interface{})
+
+	// websocket만 price 내림차순으로 리턴 받긴 하지만, GetObTargetPrice 에 전달하기 위해 ask만 price 기준 오름차순 정렬
+	sort.Slice(askResponse, func(i, j int) bool {
+		priceIStr := askResponse[i].(map[string]interface{})["price"].(string)
+		priceJStr := askResponse[j].(map[string]interface{})["price"].(string)
+
+		priceI, err1 := strconv.ParseFloat(priceIStr, 64)
+		priceJ, err2 := strconv.ParseFloat(priceJStr, 64)
+
+		if err1 != nil || err2 != nil {
+			log.Fatalf("price parse error: %v, %v\n", err1, err2)
+		}
+		return priceI < priceJ
+	})
 
 	for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
-		askR := askResponse[i]
-		bidR := bidResponse[i]
-		ask := [2]string{fmt.Sprintf("%s", askR.(map[string]interface{})["price"]), fmt.Sprintf("%s", askR.(map[string]interface{})["qty"])}
-		bid := [2]string{fmt.Sprintf("%s", bidR.(map[string]interface{})["price"]), fmt.Sprintf("%s", bidR.(map[string]interface{})["qty"])}
+		askR, bidR := askResponse[i].(map[string]interface{}), bidResponse[i].(map[string]interface{})
+		ask := [2]string{askR["price"].(string), askR["qty"].(string)}
+		bid := [2]string{bidR["price"].(string), bidR["qty"].(string)}
 		askSlice = append(askSlice, ask)
 		bidSlice = append(bidSlice, bid)
 	}

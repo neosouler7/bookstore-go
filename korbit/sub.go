@@ -19,15 +19,15 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		symbol = strings.Split(rJson["symbol"].(string), "_")[0]
 	}
 
-	rData := rJson["data"]
-	timestamp := rData.(map[string]interface{})["timestamp"].(float64)
+	rData := rJson["data"].(map[string]interface{})
+	timestamp := rData["timestamp"].(float64)
 	ts = commons.FormatTs(strconv.FormatFloat(timestamp, 'f', -1, 64))
 
 	var askResponse, bidResponse []interface{}
 	var askSlice, bidSlice []interface{}
 
-	askResponse = rData.(map[string]interface{})["asks"].([]interface{})
-	bidResponse = rData.(map[string]interface{})["bids"].([]interface{})
+	askResponse = rData["asks"].([]interface{})
+	bidResponse = rData["bids"].([]interface{})
 
 	switch api {
 	case "R":

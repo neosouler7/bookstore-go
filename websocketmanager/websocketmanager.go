@@ -28,7 +28,7 @@ const (
 	bin string = "stream.binance.com:9443"
 	bif string = "fstream.binance.com"
 	bmb string = "ws-api.bithumb.com"
-	con string = "public-ws-api.coinone.co.kr"
+	con string = "stream.coinone.co.kr"
 	gpx string = "wsapi.gopax.co.kr"
 	hbk string = "api-cloud.huobi.co.kr"
 	kbt string = "ws-api.korbit.co.kr" // "ws2.korbit.co.kr"
