@@ -8,7 +8,6 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/neosouler7/bookstore-go/config"
 )
 
 var (
@@ -17,14 +16,15 @@ var (
 	errSendMsg    = errors.New("tg sendMsg failed")
 	errGetUpdates = errors.New("tg getUpdated failed")
 
-	t           *tgbotapi.BotAPI
-	once        sync.Once
-	b           bot
-	mu          sync.Mutex
-	errorFile   = "errors.json"
-	minInterval = 3 * time.Second // 최소 메시지 전송 간격
-	tgMsgCnt    = 0
-	tgMsg       = ""
+	t            *tgbotapi.BotAPI
+	once         sync.Once
+	b            bot
+	mu           sync.Mutex
+	minInterval  = 3 * time.Second // 최소 메시지 전송 간격
+	lastSendTime time.Time
+	tgMsg        = ""
+	tgMsgCnt     = 0
+	errorFile    = "errors.json"
 )
 
 type bot struct {
@@ -89,15 +89,35 @@ func SendMsg(tgMsg string) {
 }
 
 func HandleErr(exchange string, err error) {
+	// if err != nil {
+	// 	tgMsgCnt += 1
+	// 	tgMsg += fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
+	// 	if tgMsgCnt == 5 {
+	// 		SendMsg(tgMsg)
+	// 		tgMsgCnt = 0
+	// 		tgMsg = ""
+	// 		log.Fatalln(err)
+	// 	}
+	// }
+
+	// if err == nil {
+	// 	return
+	// }
+
+	// mu.Lock()
+	// defer mu.Unlock()
+
+	// tgMsg += fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
+
+	// if time.Since(lastSendTime) >= minInterval {
+	// 	SendMsg(tgMsg)
+	// 	tgMsg = ""
+	// 	lastSendTime = time.Now()
+	// }
+
 	if err != nil {
-		tgMsgCnt += 1
-		tgMsg += fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
-		if tgMsgCnt == 5 {
-			SendMsg(tgMsg)
-			tgMsgCnt = 0
-			tgMsg = ""
-			log.Fatalln(err)
-		}
+		SendMsg(tgMsg)
+		log.Fatalln(err)
 	}
 }
 

@@ -21,7 +21,7 @@ import (
 )
 
 func usage() {
-	fmt.Print("Welcome to bookstore-go\n\n")
+	fmt.Print("Welcome to bookstore-go\n- version 1.1.9\n\n")
 	fmt.Print("Please use the following commands\n\n")
 	fmt.Print("-e : Set exchange code to run\n")
 	os.Exit(0)

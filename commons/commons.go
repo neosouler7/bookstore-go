@@ -14,9 +14,7 @@ import (
 	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
-// TODO. btc market에서의 eth를 볼 때... 사토시 단위가 짤린다.
-// return 값 먼저 확인하고, 하지만 의심가는 부분은 여기. parsing하면서 유실되는 것으로 추정. 10^-8까지 필요.
-func GetObTargetPrice(volume string, orderbook interface{}) string {
+func GetTargetPriceByVolume(volume string, orderbook interface{}) string {
 	/*
 		ask's price should go up, and bid should go down
 
@@ -25,13 +23,13 @@ func GetObTargetPrice(volume string, orderbook interface{}) string {
 	*/
 	currentVolume := 0.0
 	targetVolume, err := strconv.ParseFloat(volume, 64)
-	tgmanager.HandleErr("GetObTargetPrice1", err)
+	tgmanager.HandleErr("GetTargetPriceByVolume1", err)
 
 	obSlice := orderbook.([]interface{})
 	for _, ob := range obSlice {
 		obInfo := ob.([2]string)
 		volume, err := strconv.ParseFloat(obInfo[1], 64)
-		tgmanager.HandleErr("GetObTargetPrice2", err)
+		tgmanager.HandleErr("GetTargetPriceByVolume2", err)
 
 		currentVolume += volume
 		if currentVolume >= targetVolume {
@@ -41,7 +39,34 @@ func GetObTargetPrice(volume string, orderbook interface{}) string {
 	return obSlice[len(obSlice)-1].([2]string)[0]
 }
 
-func GetTargetVolumeMap(exchange string) map[string]string {
+func GetTargetPriceByAmount(amount string, orderbook interface{}) string {
+	/*
+		ask's price should go up, and bid should go down
+
+		ask = [[p1, v1], [p2, v2], [p3, v3] ...]
+		bid = [[p3, v3], [p2, v2], [p1, p1] ...]
+	*/
+	currentAmount := 0.0
+	targetAmount, err := strconv.ParseFloat(amount, 64)
+	tgmanager.HandleErr("GetTargetPriceByAmount1", err)
+
+	obSlice := orderbook.([]interface{})
+	for _, ob := range obSlice {
+		obInfo := ob.([2]string)
+		price, err := strconv.ParseFloat(obInfo[0], 64)
+		tgmanager.HandleErr("GetTargetPriceByAmount2", err)
+		amount, err := strconv.ParseFloat(obInfo[1], 64)
+		tgmanager.HandleErr("GetTargetPriceByAmount3", err)
+
+		currentAmount += price * amount
+		if currentAmount >= targetAmount {
+			return obInfo[0]
+		}
+	}
+	return obSlice[len(obSlice)-1].([2]string)[0]
+}
+
+func GetTargetVolumeOrAmountMap(exchange string) map[string]string {
 	pairs := config.GetPairs(exchange)
 	m := make(map[string]string, len(pairs)) // 초기 용량 설정
 
@@ -56,8 +81,8 @@ func GetTargetVolumeMap(exchange string) map[string]string {
 
 		market := p[:idx1]
 		symbol := p[idx1+1 : idx2]
-		targetVolume := p[idx2+1:]
-		m[market+":"+symbol] = targetVolume
+		targetVolumeOrAmount := p[idx2+1:]
+		m[market+":"+symbol] = targetVolumeOrAmount
 	}
 	return m
 }
