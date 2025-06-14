@@ -86,18 +86,18 @@ func SendMsg(tgMsg string) {
 	}
 }
 
-func getLastSentFilePath() string {
+func getLastSentFilePath(exchange string) string {
 	execPath, err := os.Executable()
 	if err != nil {
 		log.Println("Failed to get executable path:", err)
 		return "last_sent.txt" // fallback
 	}
 	dir := filepath.Dir(execPath)
-	return filepath.Join(dir, "last_sent.txt")
+	return filepath.Join(dir, fmt.Sprintf("last_sent_%s.txt", exchange))
 }
 
-func readLastSentTime() (time.Time, error) {
-	path := getLastSentFilePath()
+func readLastSentTime(exchange string) (time.Time, error) {
+	path := getLastSentFilePath(exchange)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -115,8 +115,8 @@ func readLastSentTime() (time.Time, error) {
 	return time.Unix(unixSec, 0), nil
 }
 
-func writeLastSentTime(t time.Time) error {
-	path := getLastSentFilePath()
+func writeLastSentTime(exchange string, t time.Time) error {
+	path := getLastSentFilePath(exchange)
 	return os.WriteFile(path, []byte(fmt.Sprintf("%d", t.Unix())), 0644)
 }
 
@@ -126,15 +126,15 @@ func HandleErr(exchange string, err error) {
 	}
 
 	now := time.Now()
-	lastSent, readErr := readLastSentTime()
+	lastSent, readErr := readLastSentTime(exchange)
 	if readErr != nil {
 		log.Println("Failed to read last sent time:", readErr) // 메시지 전송 여부 판단이 불확실하므로 보내고 기록하는 걸로 가정
 	}
 
-	if now.Sub(lastSent) >= 5*time.Second {
+	if now.Sub(lastSent) >= 1*time.Second {
 		SendMsg(fmt.Sprintf("[%s] error: %v", exchange, err))
 
-		if err := writeLastSentTime(now); err != nil {
+		if err := writeLastSentTime(exchange, now); err != nil {
 			log.Println("Failed to write last sent time:", err)
 		}
 	} else {

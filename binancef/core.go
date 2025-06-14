@@ -19,7 +19,7 @@ var (
 
 func pongWs() {
 	for {
-		websocketmanager.Pong(exchange)
+		websocketmanager.Ping(exchange)
 		time.Sleep(time.Second * 5)
 	}
 }

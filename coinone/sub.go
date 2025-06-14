@@ -51,7 +51,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		bidSlice = append(bidSlice, bid)
 	}
 
-	redismanager.PreHandleOrderbook(
+	if err := redismanager.PreHandleOrderbook(
 		api,
 		exchange,
 		market,
@@ -59,5 +59,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		askSlice,
 		bidSlice,
 		ts,
-	)
+	); err != nil {
+		tgmanager.HandleErr(exchange, err)
+	}
 }
