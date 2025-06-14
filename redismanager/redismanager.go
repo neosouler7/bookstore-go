@@ -65,13 +65,13 @@ func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice
 	safeTarget, bestTarget := targetVolumeOrAmount[0], targetVolumeOrAmount[1]
 
 	// volume 기준으로 targetPrice 계산 (deprecated at June 2025)
-	safeAskPrice, safeBidPrice := commons.GetTargetPriceByVolume(safeTarget, askSlice), commons.GetTargetPriceByVolume(safeTarget, bidSlice)
-	bestAskPrice, bestBidPrice := commons.GetTargetPriceByVolume(bestTarget, askSlice), commons.GetTargetPriceByVolume(bestTarget, bidSlice)
+	// safeAskPrice, safeBidPrice := commons.GetTargetPriceByVolume(safeTarget, askSlice), commons.GetTargetPriceByVolume(safeTarget, bidSlice)
+	// bestAskPrice, bestBidPrice := commons.GetTargetPriceByVolume(bestTarget, askSlice), commons.GetTargetPriceByVolume(bestTarget, bidSlice)
 	// fmt.Printf("safeAskPrice2: %s, safeBidPrice2: %s, bestAskPrice2: %s, bestBidPrice2: %s\n", safeAskPrice2, safeBidPrice2, bestAskPrice2, bestBidPrice2)
 
 	// amount 기준으로 targetPrice 계산 (to be replaced)
-	// safeAskPrice, safeBidPrice := commons.GetTargetPriceByAmount(safeTarget, askSlice), commons.GetTargetPriceByAmount(safeTarget, bidSlice)
-	// bestAskPrice, bestBidPrice := commons.GetTargetPriceByAmount(bestTarget, askSlice), commons.GetTargetPriceByAmount(bestTarget, bidSlice)
+	safeAskPrice, safeBidPrice := commons.GetTargetPriceByAmount(safeTarget, askSlice), commons.GetTargetPriceByAmount(safeTarget, bidSlice)
+	bestAskPrice, bestBidPrice := commons.GetTargetPriceByAmount(bestTarget, askSlice), commons.GetTargetPriceByAmount(bestTarget, bidSlice)
 
 	ob.safeAskPrice, ob.safeBidPrice = safeAskPrice, safeBidPrice
 	ob.bestAskPrice, ob.bestBidPrice = bestAskPrice, bestBidPrice
