@@ -2,7 +2,6 @@ package coinone
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -74,7 +73,7 @@ func processWsMessages(done <-chan struct{}, msgQueue <-chan []byte) {
 			rType := rJson["response_type"].(string)
 			switch rType {
 			default:
-				log.Fatalf("con UNKNOWN %s\n", rType)
+				tgmanager.HandleErr(exchange, fmt.Errorf("unknown message: %s", rType))
 			case "ERROR":
 				errCode := fmt.Sprintf("%v", rJson["error_code"])
 				errMsg := fmt.Sprintf("%v", rJson["message"])

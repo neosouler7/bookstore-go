@@ -4,6 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,15 +20,9 @@ var (
 	errSendMsg    = errors.New("tg sendMsg failed")
 	errGetUpdates = errors.New("tg getUpdated failed")
 
-	t            *tgbotapi.BotAPI
-	once         sync.Once
-	b            bot
-	mu           sync.Mutex
-	minInterval  = 3 * time.Second // 최소 메시지 전송 간격
-	lastSendTime time.Time
-	tgMsg        = ""
-	tgMsgCnt     = 0
-	errorFile    = "errors.json"
+	t    *tgbotapi.BotAPI
+	once sync.Once
+	b    bot
 )
 
 type bot struct {
@@ -88,131 +86,60 @@ func SendMsg(tgMsg string) {
 	}
 }
 
-func HandleErr(exchange string, err error) {
-	// if err != nil {
-	// 	tgMsgCnt += 1
-	// 	tgMsg += fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
-	// 	if tgMsgCnt == 5 {
-	// 		SendMsg(tgMsg)
-	// 		tgMsgCnt = 0
-	// 		tgMsg = ""
-	// 		log.Fatalln(err)
-	// 	}
-	// }
-
-	// if err == nil {
-	// 	return
-	// }
-
-	// mu.Lock()
-	// defer mu.Unlock()
-
-	// tgMsg += fmt.Sprintf("## ERROR %s %s\n%s", config.GetName(), exchange, err.Error())
-
-	// if time.Since(lastSendTime) >= minInterval {
-	// 	SendMsg(tgMsg)
-	// 	tgMsg = ""
-	// 	lastSendTime = time.Now()
-	// }
-
+func getLastSentFilePath() string {
+	execPath, err := os.Executable()
 	if err != nil {
-		SendMsg(tgMsg)
-		log.Fatalln(err)
+		log.Println("Failed to get executable path:", err)
+		return "last_sent.txt" // fallback
 	}
+	dir := filepath.Dir(execPath)
+	return filepath.Join(dir, "last_sent.txt")
 }
 
-// func HandleErr(exchange string, err error) {
-// 	if err != nil {
-// 		tgMsg := fmt.Sprintf("%s:%s", exchange, err.Error())
-// 		appendError(tgMsg)
-// 		log.Fatalln(err)
-// 	}
-// }
+func readLastSentTime() (time.Time, error) {
+	path := getLastSentFilePath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return time.Time{}, nil // 파일 없으면 0으로 간주
+		}
+		return time.Time{}, err
+	}
 
-// func appendError(errorMsg string) {
-// 	mu.Lock()
-// 	defer mu.Unlock()
+	timestampStr := strings.TrimSpace(string(data))
+	unixSec, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
 
-// 	errorLog := readErrorLog()
-// 	errorLog.Errors = append(errorLog.Errors, errorMsg)
-// 	saveErrorLog(errorLog)
-// }
+	return time.Unix(unixSec, 0), nil
+}
 
-// func readErrorLog() ErrorLog {
-// 	var errorLog ErrorLog
+func writeLastSentTime(t time.Time) error {
+	path := getLastSentFilePath()
+	return os.WriteFile(path, []byte(fmt.Sprintf("%d", t.Unix())), 0644)
+}
 
-// 	data, err := os.ReadFile(errorFile)
-// 	if err != nil {
-// 		if os.IsNotExist(err) {
-// 			return ErrorLog{}
-// 		}
-// 		log.Println("Error reading file:", err)
-// 		return ErrorLog{}
-// 	}
+func HandleErr(exchange string, err error) {
+	if err == nil {
+		return
+	}
 
-// 	err = json.Unmarshal(data, &errorLog)
-// 	if err != nil {
-// 		log.Println("Error unmarshaling JSON:", err)
-// 		return ErrorLog{}
-// 	}
+	now := time.Now()
+	lastSent, readErr := readLastSentTime()
+	if readErr != nil {
+		log.Println("Failed to read last sent time:", readErr) // 메시지 전송 여부 판단이 불확실하므로 보내고 기록하는 걸로 가정
+	}
 
-// 	return errorLog
-// }
+	if now.Sub(lastSent) >= 5*time.Second {
+		SendMsg(fmt.Sprintf("[%s] error: %v", exchange, err))
 
-// func saveErrorLog(errorLog ErrorLog) {
-// 	data, err := json.Marshal(errorLog)
-// 	if err != nil {
-// 		log.Println("Error marshaling JSON:", err)
-// 		return
-// 	}
+		if err := writeLastSentTime(now); err != nil {
+			log.Println("Failed to write last sent time:", err)
+		}
+	} else {
+		log.Println("Cooldown active, skipping Telegram message.")
+	}
 
-// 	err = os.WriteFile(errorFile, data, 0644)
-// 	if err != nil {
-// 		log.Println("Error writing file:", err)
-// 	}
-// }
-
-// func processErrors() {
-// 	ticker := time.NewTicker(minInterval)
-// 	defer ticker.Stop()
-
-// 	for {
-// 		<-ticker.C
-// 		mu.Lock()
-// 		errorLog := readErrorLog()
-// 		if len(errorLog.Errors) > 0 {
-// 			if time.Since(time.Unix(0, errorLog.LatestSend)) >= minInterval {
-// 				log.Println("Sending errors to Telegram:", errorLog.Errors)
-// 				sendErrorsToTelegram(errorLog.Errors)
-// 				errorLog.Errors = []string{}
-// 				errorLog.LatestSend = time.Now().UnixNano()
-// 				saveErrorLog(errorLog)
-// 			}
-// 		}
-// 		mu.Unlock()
-// 	}
-// }
-
-// func sendErrorsToTelegram(errors []string) {
-// 	if len(errors) == 0 {
-// 		return
-// 	}
-
-// 	message := fmt.Sprintf("## ERRORS ##\n\n%s\n\n%s", joinErrors(errors), time.Now().Format(StampMicro))
-// 	for _, chat_id := range b.chat_ids {
-// 		msg := tgbotapi.NewMessage(int64(chat_id), message)
-// 		log.Println("Sending message to Telegram:", message)
-// 		_, err := b.Bot().Send(msg)
-// 		if err != nil {
-// 			log.Println(errSendMsg, err)
-// 		}
-// 	}
-// }
-
-// func joinErrors(errors []string) string {
-// 	result := ""
-// 	for _, err := range errors {
-// 		result += err + "\n"
-// 	}
-// 	return result
-// }
+	log.Fatalln(err)
+}

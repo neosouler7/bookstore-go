@@ -3,7 +3,6 @@ package redismanager
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -59,7 +58,7 @@ func client() *redis.Client {
 	return rdb
 }
 
-func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice []interface{}, ts string) {
+func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice []interface{}, ts string) error {
 	ob := newOrderbook(exchange, market, symbol, ts)
 
 	targetVolumeOrAmount := strings.Split(commons.GetTargetVolumeOrAmountMap(exchange)[market+":"+symbol], "|")
@@ -77,7 +76,7 @@ func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice
 	ob.safeAskPrice, ob.safeBidPrice = safeAskPrice, safeBidPrice
 	ob.bestAskPrice, ob.bestBidPrice = bestAskPrice, bestBidPrice
 
-	ob.setOrderbook(api)
+	return ob.setOrderbook(api)
 }
 
 func newOrderbook(exchange, market, symbol, ts string) *orderbook {
@@ -95,13 +94,17 @@ func newOrderbook(exchange, market, symbol, ts string) *orderbook {
 	return ob
 }
 
-func (ob *orderbook) setOrderbook(api string) {
+func (ob *orderbook) setOrderbook(api string) error {
 	currentTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UTC().UnixNano()/100000))
 	currentTs, errParseInt := strconv.ParseInt(currentTsStr, 10, 64)
-	tgmanager.HandleErr(ob.exchange, errParseInt)
+	if errParseInt != nil {
+		return fmt.Errorf("failed to parse current timestamp: %v", errParseInt)
+	}
 
 	obTs, errParseInt := strconv.ParseInt(ob.ts, 10, 64)
-	tgmanager.HandleErr(ob.exchange, errParseInt)
+	if errParseInt != nil {
+		return fmt.Errorf("failed to parse orderbook timestamp: %v", errParseInt)
+	}
 
 	key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
 
@@ -139,19 +142,25 @@ func (ob *orderbook) setOrderbook(api string) {
 		// if serverLatency > 0 { // 과거값 버리는 로직 임시 제거(25.3.26)
 		targetTs = ob.ts
 		sMap.Store(key, targetTs)
-		publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api)
+		if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
+			return fmt.Errorf("failed to publish websocket orderbook: %v", err)
+		}
 		// }
 	case "R":
 		if serverLatency == 0 && localLatency > 100 {
 			targetTs = currentTsStr
 			// sMap.Store(key, targetTs) // pub은 하지만 로컬 비교를 위한 map에는 저장하지 않는 것이 맞음
-			publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api)
+			if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
+				return fmt.Errorf("failed to publish rest orderbook: %v", err)
+			}
 		}
 	}
 
 	sOnce.Do(func() {
 		subscribeCheck(ob.exchange)
 	})
+
+	return nil
 }
 
 const sampleRate = 1000      // 샘플링 비율 (예: 1000개의 로그 중 1개만 출력)
@@ -172,13 +181,14 @@ func sampledLog(format string, v ...interface{}) {
 	}
 }
 
-func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) {
+func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) error {
 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
 
 	err := client().Publish(ctx, key, value).Err()
 	tgmanager.HandleErr(ob.exchange, err)
 
 	sampledLog("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
+	return nil
 }
 
 func subscribeCheck(exchange string) {
@@ -196,9 +206,8 @@ func subscribeCheck(exchange string) {
 
 	for {
 		msg, err := pubsub.ReceiveMessage(ctx)
-		if err != nil {
-			log.Fatalln("Error receiving message:", err)
-		}
+		tgmanager.HandleErr(exchange, err)
+
 		// fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
 
 		subTsStr := strings.Split(msg.Payload, "|")[4]

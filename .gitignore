@@ -4,6 +4,7 @@ dump.rdb
 .vscode
 *.sh
 *.log
+*.txt
 
 # Binaries for programs and plugins
 *.exe

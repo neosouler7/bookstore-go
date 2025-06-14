@@ -2,7 +2,6 @@ package korbit
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -78,7 +77,7 @@ func processWsMessages(done <-chan struct{}, msgQueue <-chan []byte) {
 			} else if strings.Contains(string(msgBytes), "pong") {
 				fmt.Println("PONG")
 			} else {
-				log.Fatalln(string(msgBytes))
+				tgmanager.HandleErr(exchange, fmt.Errorf("unknown message: %s", string(msgBytes)))
 			}
 		}
 	}

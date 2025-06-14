@@ -1,13 +1,14 @@
 package coinone
 
 import (
-	"log"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/redismanager"
+	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
@@ -37,7 +38,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 		priceJ, err2 := strconv.ParseFloat(priceJStr, 64)
 
 		if err1 != nil || err2 != nil {
-			log.Fatalf("price parse error: %v, %v\n", err1, err2)
+			tgmanager.HandleErr(exchange, fmt.Errorf("price parse error: %v, %v\n", err1, err2))
 		}
 		return priceI < priceJ
 	})
