@@ -1,6 +1,7 @@
 package upbit
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -20,7 +21,7 @@ var (
 	// pingMsg  string = "PING"
 )
 
-func pongWs(done <-chan struct{}) {
+func pongWs(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -28,7 +29,7 @@ func pongWs(done <-chan struct{}) {
 		select {
 		case <-ticker.C:
 			websocketmanager.Ping(exchange)
-		case <-done:
+		case <-ctx.Done():
 			return
 		}
 	}
@@ -53,25 +54,27 @@ func subscribeWs(pairs []string, wg *sync.WaitGroup) {
 	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
 }
 
-func receiveWs(done <-chan struct{}, msgQueue chan<- []byte) {
+func receiveWs(ctx context.Context, cancel context.CancelFunc, msgQueue chan<- []byte) {
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
 			return
 		default:
 			_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 			if err != nil {
 				tgmanager.HandleErr(exchange, err)
+				cancel() // 에러 발생 시 모든 관련 작업 취소
+				return
 			}
 			msgQueue <- msgBytes
 		}
 	}
 }
 
-func processWsMessages(done <-chan struct{}, msgQueue <-chan []byte) {
+func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
 			return
 		case msgBytes := <-msgQueue:
 			if strings.Contains(string(msgBytes), "status") {
@@ -85,29 +88,39 @@ func processWsMessages(done <-chan struct{}, msgQueue <-chan []byte) {
 	}
 }
 
-func rest(pairs []string, done <-chan struct{}, restQueue chan<- map[string]interface{}) {
-	// buffer, rateLimit := config.GetRateLimit(exchange)
+func rest(ctx context.Context, pairs []string, restQueue chan<- map[string]interface{}) {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	pairIndex := 0
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
 			return
-		default:
-			for _, pair := range pairs {
-				go func(pair string) {
-					rJson := restmanager.FastHttpRequest2(exchange, "GET", pair)
-					restQueue <- rJson
-				}(pair)
-				// time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
-				time.Sleep(time.Millisecond * 500)
+		case <-ticker.C:
+			if ctx.Err() != nil {
+				return
 			}
+
+			pair := pairs[pairIndex] // 현재 인덱스의 페어에 대해서만 고루틴으로 호출
+			go func(p string) {
+				rJson := restmanager.FastHttpRequest2(exchange, "GET", p)
+				select {
+				case restQueue <- rJson:
+				case <-ctx.Done():
+					return
+				}
+			}(pair)
+
+			pairIndex = (pairIndex + 1) % len(pairs)
 		}
 	}
 }
 
-func processRestResponses(done <-chan struct{}, restQueue <-chan map[string]interface{}) {
+func processRestResponses(ctx context.Context, restQueue <-chan map[string]interface{}) {
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
 			return
 		case rJson := <-restQueue:
 			go SetOrderbook("R", exchange, rJson)
@@ -119,7 +132,10 @@ func Run(e string) {
 	exchange = e
 	pairs := config.GetPairs(exchange)
 	var wg sync.WaitGroup
-	done := make(chan struct{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // Run 함수 종료 시 모든 컨텍스트 취소
+
 	wsQueue := make(chan []byte, 1)                            // WebSocket 메시지 큐
 	restQueue := make(chan map[string]interface{}, len(pairs)) // REST 응답 큐
 
@@ -127,7 +143,7 @@ func Run(e string) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		pongWs(done)
+		pongWs(ctx)
 	}()
 
 	// subscribe websocket stream
@@ -138,29 +154,29 @@ func Run(e string) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		receiveWs(done, wsQueue)
+		receiveWs(ctx, cancel, wsQueue)
 	}()
 
 	// process websocket messages
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		processWsMessages(done, wsQueue)
+		processWsMessages(ctx, wsQueue)
 	}()
 
 	// rest
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		rest(pairs, done, restQueue)
+		rest(ctx, pairs, restQueue)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		processRestResponses(done, restQueue)
+		processRestResponses(ctx, restQueue)
 	}()
 
-	wg.Wait()
-	close(done)
+	<-ctx.Done() // 웹소켓 에러 등으로 컨텍스트가 취소될 때까지 대기
+	wg.Wait()    // 모든 고루틴이 정상적으로 종료될 때까지 대기
 }

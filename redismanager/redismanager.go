@@ -187,6 +187,7 @@ func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, a
 	err := client().Publish(ctx, key, value).Err()
 	tgmanager.HandleErr(ob.exchange, err)
 
+	// fmt.Printf("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
 	sampledLog("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
 	return nil
 }
