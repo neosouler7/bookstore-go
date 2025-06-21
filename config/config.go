@@ -8,8 +8,6 @@ import (
 	"os"
 	"reflect"
 	"sync"
-
-	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 var (
@@ -74,12 +72,12 @@ func getCachedConfig(key string) reflect.Value {
 
 	s := reflect.ValueOf(&configCache).Elem()
 	if s.Kind() != reflect.Struct {
-		tgmanager.HandleErr("", errNotStruct)
+		log.Fatalln(errNotStruct)
 	}
 
 	f := s.FieldByName(key)
 	if !f.IsValid() {
-		tgmanager.HandleErr("", errNoField)
+		log.Fatalln(errNoField)
 	}
 	return f
 }

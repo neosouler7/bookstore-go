@@ -12,6 +12,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/neosouler7/bookstore-go/config"
 )
 
 var (
@@ -132,7 +133,7 @@ func HandleErr(exchange string, err error) {
 	}
 
 	if now.Sub(lastSent) >= 1*time.Second {
-		SendMsg(fmt.Sprintf("[%s] error: %v", exchange, err))
+		SendMsg(fmt.Sprintf("## ERROR %s %s\n%v", config.GetName(), exchange, err))
 
 		if err := writeLastSentTime(exchange, now); err != nil {
 			log.Println("Failed to write last sent time:", err)

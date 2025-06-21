@@ -177,28 +177,22 @@ func FastHttpRequest2(exchange, method, pair string) map[string]interface{} {
 	epqs := &epqs{}
 	epqs.getEpqs(exchange, market, symbol)
 
-	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
-	defer func() {
-		fasthttp.ReleaseRequest(req)
-		fasthttp.ReleaseResponse(res)
-	}()
-
-	req.Header.SetMethod(fasthttp.MethodGet)
-	req.SetRequestURI(epqs.endPoint)
-	req.URI().SetQueryString(epqs.queryString)
-
-	statusCode, body, err := fastHttpClient().GetTimeout(nil, req.URI().String(), time.Duration(5)*time.Second)
-	tgmanager.HandleErr(exchange, err)
+	statusCode, body, err := fastHttpClient().GetTimeout(nil, epqs.endPoint+"?"+epqs.queryString, time.Duration(5)*time.Second)
+	if err != nil {
+		errRestResult := fmt.Errorf("HTTP failed for %w", err)
+		tgmanager.HandleErr(exchange, errRestResult)
+	}
 	if len(body) == 0 {
-		errHttpResponseBody := errors.New("empty response body")
+		errHttpResponseBody := errors.New("HTTP empty response body")
 		tgmanager.HandleErr(exchange, errHttpResponseBody)
 	}
 	if statusCode != fasthttp.StatusOK {
-		errHttpResponseStatus := fmt.Errorf("restapi error with status %d", statusCode)
+		errHttpResponseStatus := fmt.Errorf("HTTP with status %d", statusCode)
 		tgmanager.HandleErr(exchange, errHttpResponseStatus)
 	}
 
-	value := make(map[string]interface{})
+	var value map[string]interface{}
+
 	switch exchange {
 	case "bmb":
 		var rJson []interface{}
