@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/neosouler7/bookstore-go/config"
-	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 func GetTargetPriceByVolume(volume string, orderbook interface{}) string {
@@ -23,13 +22,17 @@ func GetTargetPriceByVolume(volume string, orderbook interface{}) string {
 	*/
 	currentVolume := 0.0
 	targetVolume, err := strconv.ParseFloat(volume, 64)
-	tgmanager.HandleErr("GetTargetPriceByVolume1", err)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	obSlice := orderbook.([]interface{})
 	for _, ob := range obSlice {
 		obInfo := ob.([2]string)
 		volume, err := strconv.ParseFloat(obInfo[1], 64)
-		tgmanager.HandleErr("GetTargetPriceByVolume2", err)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		currentVolume += volume
 		if currentVolume >= targetVolume {
@@ -47,16 +50,19 @@ func GetTargetPriceByAmount(amount string, orderbook interface{}) string {
 		bid = [[p3, v3], [p2, v2], [p1, p1] ...]
 	*/
 	currentAmount := 0.0
-	targetAmount, err := strconv.ParseFloat(amount, 64)
-	tgmanager.HandleErr("GetTargetPriceByAmount1", err)
+	targetAmount, _ := strconv.ParseFloat(amount, 64)
 
 	obSlice := orderbook.([]interface{})
 	for _, ob := range obSlice {
 		obInfo := ob.([2]string)
 		price, err := strconv.ParseFloat(obInfo[0], 64)
-		tgmanager.HandleErr("GetTargetPriceByAmount2", err)
+		if err != nil {
+			log.Fatalln(err)
+		}
 		amount, err := strconv.ParseFloat(obInfo[1], 64)
-		tgmanager.HandleErr("GetTargetPriceByAmount3", err)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		currentAmount += price * amount
 		if currentAmount >= targetAmount {
@@ -130,7 +136,9 @@ func Min(a, b int) int {
 func Bytes2Json(data []byte, i interface{}) {
 	r := bytes.NewReader(data)
 	err := json.NewDecoder(r).Decode(i)
-	tgmanager.HandleErr("Bytes2Json", err)
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func SetTimeZone(name string) *time.Location {

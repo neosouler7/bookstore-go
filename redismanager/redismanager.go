@@ -3,6 +3,7 @@ package redismanager
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/config"
-	"github.com/neosouler7/bookstore-go/tgmanager"
 )
 
 var (
@@ -53,7 +53,9 @@ func client() *redis.Client {
 		})
 
 		_, err := rdb.Ping(ctx).Result()
-		tgmanager.HandleErr("redis", err)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	})
 	return rdb
 }
@@ -185,7 +187,9 @@ func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, a
 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
 
 	err := client().Publish(ctx, key, value).Err()
-	tgmanager.HandleErr(ob.exchange, err)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	// fmt.Printf("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
 	sampledLog("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
@@ -207,11 +211,30 @@ func subscribeCheck(exchange string) {
 
 	for {
 		msg, err := pubsub.ReceiveMessage(ctx)
-		tgmanager.HandleErr(exchange, err)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		// fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
 
 		subTsStr := strings.Split(msg.Payload, "|")[4]
 		pMap.Store(msg.Channel, subTsStr)
 	}
+}
+
+func WriteLastSentTime(exchange string, t time.Time) error {
+	key := fmt.Sprintf("error:sent:%s", exchange)
+	return client().Set(ctx, key, "1", 2*time.Second).Err()
+}
+
+func ReadLastSentTime(exchange string) (time.Time, error) {
+	key := fmt.Sprintf("error:sent:%s", exchange)
+	exists, err := client().Exists(ctx, key).Result()
+	if err != nil {
+		return time.Time{}, err
+	}
+	if exists == 1 {
+		return time.Now(), nil
+	}
+	return time.Time{}, nil
 }
