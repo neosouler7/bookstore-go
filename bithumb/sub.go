@@ -12,7 +12,6 @@ import (
 
 func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	var market, symbol string
-	var askSlice, bidSlice []interface{}
 
 	marketKey := map[string]string{"R": "market", "W": "code"}[api]
 	pairInfo := strings.Split(rJson[marketKey].(string), "-")
@@ -22,6 +21,8 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	ts := commons.FormatTs(strconv.Itoa(tsFloat))
 
 	orderbookUnits := rJson["orderbook_units"].([]interface{})
+	askSlice := make([]interface{}, 0, len(orderbookUnits)) // 용량 미리 할당
+	bidSlice := make([]interface{}, 0, len(orderbookUnits)) // 용량 미리 할당
 
 	for _, unit := range orderbookUnits {
 		orderbookUnit := unit.(map[string]interface{})

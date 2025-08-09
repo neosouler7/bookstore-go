@@ -25,10 +25,11 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	ts = commons.FormatTs(strconv.FormatFloat(timestamp, 'f', -1, 64))
 
 	var askResponse, bidResponse []interface{}
-	var askSlice, bidSlice []interface{}
-
 	askResponse = rData["asks"].([]interface{})
 	bidResponse = rData["bids"].([]interface{})
+
+	askSlice := make([]interface{}, 0, commons.Max(len(askResponse), len(bidResponse))) // 용량 미리 할당
+	bidSlice := make([]interface{}, 0, commons.Max(len(askResponse), len(bidResponse))) // 용량 미리 할당
 
 	switch api {
 	case "R":
