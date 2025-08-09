@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,10 +22,14 @@ var (
 	rdb        *redis.Client
 	cOnce      sync.Once
 	sOnce      sync.Once
-	sMap       sync.Map
-	pMap       sync.Map
+	sMap       *TimestampCache // sync.Map에서 TimestampCache로 변경
+	pMap       *TimestampCache // sync.Map에서 TimestampCache로 변경
 	location   *time.Location
 	StampMicro = "Jan _2 15:04:05.000000"
+
+	// 메모리 모니터링 관련
+	memStats     runtime.MemStats
+	lastMemCheck time.Time
 )
 
 type orderbook struct {
@@ -40,7 +45,38 @@ type orderbook struct {
 }
 
 func init() {
+	// 캐시 초기화 (용량은 거래쌍 수 * 2 정도로 설정)
+	sMap = NewTimestampCache(1000) // 최대 1000개 키
+	pMap = NewTimestampCache(1000) // 최대 1000개 키
+
 	location = commons.SetTimeZone("Redis")
+
+	// 메모리 모니터링 시작
+	go monitorMemory()
+}
+
+// monitorMemory 메모리 사용량 모니터링
+func monitorMemory() {
+	ticker := time.NewTicker(30 * time.Second) // 30초마다 체크
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			runtime.ReadMemStats(&memStats)
+
+			// 메모리 사용량이 높으면 로그 출력
+			if memStats.Alloc > 100*1024*1024 { // 100MB 이상
+				log.Printf("⚠️  메모리 사용량 높음: Alloc=%d MB, Sys=%d MB, NumGC=%d",
+					memStats.Alloc/1024/1024,
+					memStats.Sys/1024/1024,
+					memStats.NumGC)
+
+				// 캐시 크기도 함께 출력
+				log.Printf("📊 캐시 상태: sMap=%d, pMap=%d", sMap.Len(), pMap.Len())
+			}
+		}
+	}
 }
 
 func client() *redis.Client {
@@ -113,9 +149,7 @@ func (ob *orderbook) setOrderbook(api string) error {
 	// 내부 goroutine의 race issue 방지 위해 syncTs를 관리
 	prevSyncTsStr := "0"
 	if prevSyncTsTemp, ok := sMap.Load(key); ok {
-		if str, ok := prevSyncTsTemp.(string); ok {
-			prevSyncTsStr = str
-		}
+		prevSyncTsStr = prevSyncTsTemp
 	}
 	prevSyncTs, err := strconv.ParseInt(prevSyncTsStr, 10, 64)
 	if err != nil {
@@ -125,9 +159,7 @@ func (ob *orderbook) setOrderbook(api string) error {
 	// 실제 pubTs와 현재 간의 Latency를 계산하기 위해
 	prevPubTsStr := "0"
 	if prevPubTsTemp, ok := pMap.Load(key); ok {
-		if str, ok := prevPubTsTemp.(string); ok {
-			prevPubTsStr = str
-		}
+		prevPubTsStr = prevPubTsTemp
 	}
 	prevPubTs, err := strconv.ParseInt(prevPubTsStr, 10, 64)
 	if err != nil {
