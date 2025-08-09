@@ -51,6 +51,8 @@ func subscribeWs(pairs []string, wg *sync.WaitGroup) {
 }
 
 func receiveWs(ctx context.Context, cancel context.CancelFunc, msgQueue chan<- []byte) {
+	defer close(msgQueue)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -62,7 +64,12 @@ func receiveWs(ctx context.Context, cancel context.CancelFunc, msgQueue chan<- [
 				cancel() // 에러 발생 시 모든 관련 작업 취소
 				return
 			}
-			msgQueue <- msgBytes
+
+			select {
+			case msgQueue <- msgBytes:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }
@@ -76,7 +83,15 @@ func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
 			if strings.Contains(string(msgBytes), "orderbook") {
 				var rJson interface{}
 				commons.Bytes2Json(msgBytes, &rJson)
-				go SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+
+				go func() {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						SetOrderbook("W", exchange, rJson.(map[string]interface{}))
+					}
+				}()
 			} else if strings.Contains(string(msgBytes), "pong") {
 				fmt.Println("PONG")
 			} else {
