@@ -90,11 +90,17 @@ func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
 				var rJson interface{}
 				commons.Bytes2Json(msgBytes, &rJson)
 
+				// 컨텍스트로 제어하는 고루틴
 				go func() {
+					// 컨텍스트 취소 시 즉시 종료
 					select {
 					case <-ctx.Done():
 						return
 					default:
+						// 작업 완료 후 컨텍스트 다시 확인
+						if ctx.Err() != nil {
+							return
+						}
 						SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 					}
 				}()
@@ -138,7 +144,18 @@ func processRestResponses(ctx context.Context, restQueue <-chan map[string]inter
 		case <-ctx.Done():
 			return
 		case rJson := <-restQueue:
-			go SetOrderbook("R", exchange, rJson)
+			// 컨텍스트로 제어하는 고루틴
+			go func() {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					if ctx.Err() != nil {
+						return
+					}
+					SetOrderbook("R", exchange, rJson)
+				}
+			}()
 		}
 	}
 }
@@ -151,8 +168,8 @@ func Run(e string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Run 함수 종료 시 모든 컨텍스트 취소
 
-	wsQueue := make(chan []byte, 1)                            // WebSocket 메시지 큐
-	restQueue := make(chan map[string]interface{}, len(pairs)) // REST 응답 큐
+	wsQueue := make(chan []byte, 100)                            // WebSocket 메시지 큐
+	restQueue := make(chan map[string]interface{}, len(pairs)*2) // REST 응답 큐
 
 	// ping
 	wg.Add(1)
