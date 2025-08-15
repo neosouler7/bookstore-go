@@ -1,7 +1,6 @@
 package upbit
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -30,8 +29,17 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 
 	for _, ob := range orderbooks {
 		o := ob.(map[string]interface{})
-		ask := [2]string{fmt.Sprintf("%f", o["ask_price"]), fmt.Sprintf("%f", o["ask_size"])}
-		bid := [2]string{fmt.Sprintf("%f", o["bid_price"]), fmt.Sprintf("%f", o["bid_size"])}
+		ap, as := o["ask_price"].(float64), o["ask_size"].(float64)
+		bp, bs := o["bid_price"].(float64), o["bid_size"].(float64)
+
+		ask := [2]string{
+			strconv.FormatFloat(ap, 'f', -1, 64),
+			strconv.FormatFloat(as, 'f', -1, 64),
+		}
+		bid := [2]string{
+			strconv.FormatFloat(bp, 'f', -1, 64),
+			strconv.FormatFloat(bs, 'f', -1, 64),
+		}
 		askSlice = append(askSlice, ask)
 		bidSlice = append(bidSlice, bid)
 	}

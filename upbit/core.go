@@ -57,6 +57,13 @@ func subscribeWs(pairs []string, wg *sync.WaitGroup) {
 func receiveWs(ctx context.Context, cancel context.CancelFunc, msgQueue chan<- []byte) {
 	defer close(msgQueue)
 
+	// ctx 취소 시 즉시 읽기 차단 해제
+	go func() {
+		<-ctx.Done()
+		websocketmanager.Close()
+		tgmanager.HandleErr(exchange, fmt.Errorf("receiveWs lost"))
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -83,28 +90,17 @@ func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
 		select {
 		case <-ctx.Done():
 			return
-		case msgBytes := <-msgQueue:
+		case msgBytes, ok := <-msgQueue:
+			if !ok {
+				return
+			}
 			if strings.Contains(string(msgBytes), "status") {
 				fmt.Println("PONG") // {"status":"UP"}
-			} else {
-				var rJson interface{}
-				commons.Bytes2Json(msgBytes, &rJson)
-
-				// 컨텍스트로 제어하는 고루틴
-				go func() {
-					// 컨텍스트 취소 시 즉시 종료
-					select {
-					case <-ctx.Done():
-						return
-					default:
-						// 작업 완료 후 컨텍스트 다시 확인
-						if ctx.Err() != nil {
-							return
-						}
-						SetOrderbook("W", exchange, rJson.(map[string]interface{}))
-					}
-				}()
+				continue
 			}
+			var rJson interface{}
+			commons.Bytes2Json(msgBytes, &rJson)
+			SetOrderbook("W", exchange, rJson.(map[string]interface{}))
 		}
 	}
 }
@@ -123,17 +119,14 @@ func rest(ctx context.Context, pairs []string, restQueue chan<- map[string]inter
 				return
 			}
 
-			pair := pairs[pairIndex] // 현재 인덱스의 페어에 대해서만 고루틴으로 호출
-			go func(p string) {
-				rJson := restmanager.FastHttpRequest2(exchange, "GET", p)
-				select {
-				case restQueue <- rJson:
-				case <-ctx.Done():
-					return
-				}
-			}(pair)
-
+			p := pairs[pairIndex]
 			pairIndex = (pairIndex + 1) % len(pairs)
+			rJson := restmanager.FastHttpRequest2(exchange, "GET", p)
+			select {
+			case restQueue <- rJson:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }
@@ -143,19 +136,11 @@ func processRestResponses(ctx context.Context, restQueue <-chan map[string]inter
 		select {
 		case <-ctx.Done():
 			return
-		case rJson := <-restQueue:
-			// 컨텍스트로 제어하는 고루틴
-			go func() {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					if ctx.Err() != nil {
-						return
-					}
-					SetOrderbook("R", exchange, rJson)
-				}
-			}()
+		case rJson, ok := <-restQueue:
+			if !ok {
+				return
+			}
+			SetOrderbook("R", exchange, rJson)
 		}
 	}
 }

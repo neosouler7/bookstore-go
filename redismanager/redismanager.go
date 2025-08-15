@@ -191,7 +191,7 @@ func (ob *orderbook) setOrderbook(api string) error {
 	}
 
 	sOnce.Do(func() {
-		subscribeCheck(ob.exchange)
+		go subscribeCheck(ob.exchange)
 	})
 
 	return nil
