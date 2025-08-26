@@ -102,14 +102,14 @@ func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice
 	targetVolumeOrAmount := strings.Split(commons.GetTargetVolumeOrAmountMap(exchange)[market+":"+symbol], "|")
 	safeTarget, bestTarget := targetVolumeOrAmount[0], targetVolumeOrAmount[1]
 
-	// volume 기준으로 targetPrice 계산 (deprecated at June 2025)
-	// safeAskPrice, safeBidPrice := commons.GetTargetPriceByVolume(safeTarget, askSlice), commons.GetTargetPriceByVolume(safeTarget, bidSlice)
-	// bestAskPrice, bestBidPrice := commons.GetTargetPriceByVolume(bestTarget, askSlice), commons.GetTargetPriceByVolume(bestTarget, bidSlice)
+	// volume 기준으로 targetPrice 계산 (deprecated at June 2025-for fbV1)
+	safeAskPrice, safeBidPrice := commons.GetTargetPriceByVolume(safeTarget, askSlice), commons.GetTargetPriceByVolume(safeTarget, bidSlice)
+	bestAskPrice, bestBidPrice := commons.GetTargetPriceByVolume(bestTarget, askSlice), commons.GetTargetPriceByVolume(bestTarget, bidSlice)
 	// fmt.Printf("safeAskPrice2: %s, safeBidPrice2: %s, bestAskPrice2: %s, bestBidPrice2: %s\n", safeAskPrice2, safeBidPrice2, bestAskPrice2, bestBidPrice2)
 
-	// amount 기준으로 targetPrice 계산 (to be replaced)
-	safeAskPrice, safeBidPrice := commons.GetTargetPriceByAmount(safeTarget, askSlice), commons.GetTargetPriceByAmount(safeTarget, bidSlice)
-	bestAskPrice, bestBidPrice := commons.GetTargetPriceByAmount(bestTarget, askSlice), commons.GetTargetPriceByAmount(bestTarget, bidSlice)
+	// amount 기준으로 targetPrice 계산 (for fbV2)
+	// safeAskPrice, safeBidPrice := commons.GetTargetPriceByAmount(safeTarget, askSlice), commons.GetTargetPriceByAmount(safeTarget, bidSlice)
+	// bestAskPrice, bestBidPrice := commons.GetTargetPriceByAmount(bestTarget, askSlice), commons.GetTargetPriceByAmount(bestTarget, bidSlice)
 
 	ob.safeAskPrice, ob.safeBidPrice = safeAskPrice, safeBidPrice
 	ob.bestAskPrice, ob.bestBidPrice = bestAskPrice, bestBidPrice
@@ -190,9 +190,10 @@ func (ob *orderbook) setOrderbook(api string) error {
 		}
 	}
 
-	sOnce.Do(func() {
-		go subscribeCheck(ob.exchange)
-	})
+	// for fbV2
+	// sOnce.Do(func() {
+	// 	go subscribeCheck(ob.exchange)
+	// })
 
 	return nil
 }
@@ -218,7 +219,11 @@ func sampledLog(format string, v ...interface{}) {
 func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) error {
 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
 
-	err := client().Publish(ctx, key, value).Err()
+	// for fbV1
+	err := client().Set(ctx, key, value, 0).Err()
+
+	// for fbV2
+	// err := client().Publish(ctx, key, value).Err()
 	if err != nil {
 		log.Fatalln(err)
 	}
