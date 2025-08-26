@@ -218,7 +218,8 @@ func sampledLog(format string, v ...interface{}) {
 
 func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) error {
 	// for fbV1
-	value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.safeAskPrice, ob.safeBidPrice, ob.localTs)
+	bsTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
+	value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.safeAskPrice, ob.safeBidPrice, bsTsStr)
 	err := client().Set(ctx, key, value, 0).Err()
 
 	// for fbV2
