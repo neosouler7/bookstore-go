@@ -217,12 +217,12 @@ func sampledLog(format string, v ...interface{}) {
 }
 
 func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) error {
-	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
-
 	// for fbV1
+	value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.safeAskPrice, ob.safeBidPrice, ob.localTs)
 	err := client().Set(ctx, key, value, 0).Err()
 
 	// for fbV2
+	// value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
 	// err := client().Publish(ctx, key, value).Err()
 	if err != nil {
 		log.Fatalln(err)
