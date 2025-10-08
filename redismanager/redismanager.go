@@ -2,9 +2,11 @@ package redismanager
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -103,13 +105,13 @@ func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice
 	safeTarget, bestTarget := targetVolumeOrAmount[0], targetVolumeOrAmount[1]
 
 	// volume 기준으로 targetPrice 계산 (deprecated at June 2025-for fbV1)
-	safeAskPrice, safeBidPrice := commons.GetTargetPriceByVolume(safeTarget, askSlice), commons.GetTargetPriceByVolume(safeTarget, bidSlice)
-	bestAskPrice, bestBidPrice := commons.GetTargetPriceByVolume(bestTarget, askSlice), commons.GetTargetPriceByVolume(bestTarget, bidSlice)
+	// safeAskPrice, safeBidPrice := commons.GetTargetPriceByVolume(safeTarget, askSlice), commons.GetTargetPriceByVolume(safeTarget, bidSlice)
+	// bestAskPrice, bestBidPrice := commons.GetTargetPriceByVolume(bestTarget, askSlice), commons.GetTargetPriceByVolume(bestTarget, bidSlice)
 	// fmt.Printf("safeAskPrice2: %s, safeBidPrice2: %s, bestAskPrice2: %s, bestBidPrice2: %s\n", safeAskPrice2, safeBidPrice2, bestAskPrice2, bestBidPrice2)
 
 	// amount 기준으로 targetPrice 계산 (for fbV2)
-	// safeAskPrice, safeBidPrice := commons.GetTargetPriceByAmount(safeTarget, askSlice), commons.GetTargetPriceByAmount(safeTarget, bidSlice)
-	// bestAskPrice, bestBidPrice := commons.GetTargetPriceByAmount(bestTarget, askSlice), commons.GetTargetPriceByAmount(bestTarget, bidSlice)
+	safeAskPrice, safeBidPrice := commons.GetTargetPriceByAmount(safeTarget, askSlice), commons.GetTargetPriceByAmount(safeTarget, bidSlice)
+	bestAskPrice, bestBidPrice := commons.GetTargetPriceByAmount(bestTarget, askSlice), commons.GetTargetPriceByAmount(bestTarget, bidSlice)
 
 	ob.safeAskPrice, ob.safeBidPrice = safeAskPrice, safeBidPrice
 	ob.bestAskPrice, ob.bestBidPrice = bestAskPrice, bestBidPrice
@@ -182,7 +184,7 @@ func (ob *orderbook) setOrderbook(api string) error {
 		// }
 	case "R":
 		if serverLatency == 0 && localLatency > 100 {
-			targetTs = currentTsStr
+			targetTs = currentTsStr // 일정 시간 이상 호가 갱신 되지 않을 시, 로컬 시간을 저장
 			// sMap.Store(key, targetTs) // pub은 하지만 로컬 비교를 위한 map에는 저장하지 않는 것이 맞음
 			if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
 				return fmt.Errorf("failed to publish rest orderbook: %v", err)
@@ -190,10 +192,9 @@ func (ob *orderbook) setOrderbook(api string) error {
 		}
 	}
 
-	// for fbV2
-	// sOnce.Do(func() {
-	// 	go subscribeCheck(ob.exchange)
-	// })
+	sOnce.Do(func() {
+		go subscribeCheck(ob.exchange)
+	})
 
 	return nil
 }
@@ -217,20 +218,22 @@ func sampledLog(format string, v ...interface{}) {
 }
 
 func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) error {
-	// for fbV1
-	bsTsStr := commons.FormatTs(fmt.Sprintf("%d", time.Now().UnixNano()/100000))
-	value := fmt.Sprintf("%s|%s|%s|%s", ob.ts, ob.safeAskPrice, ob.safeBidPrice, bsTsStr)
-	err := client().Set(ctx, key, value, 0).Err()
+	// uid := ulid.MustNew(ulid.Timestamp(time.Now()), entropy).String()
+	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
 
-	// for fbV2
-	// value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
-	// err := client().Publish(ctx, key, value).Err()
+	// Redis Pub
+	err := client().Publish(ctx, key, value).Err()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// fmt.Printf("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
+	// Local logging
 	sampledLog("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
+
+	// Temp CSV
+	if err := saveToCSV("orderbook_log.csv", key, value); err != nil {
+		log.Println("csv save error:", err)
+	}
 	return nil
 }
 
@@ -275,4 +278,37 @@ func ReadLastSentTime(exchange string) (time.Time, error) {
 		return time.Now(), nil
 	}
 	return time.Time{}, nil
+}
+
+func saveToCSV(filename, key, value string) error {
+	// value를 '|'로 분리
+	fields := strings.Split(value, "|")
+
+	// 최종 CSV 컬럼 순서
+	record := []string{
+		key,       // 추가된 key
+		fields[0], // safeAskPrice
+		fields[1], // bestAskPrice
+		fields[2], // bestBidPrice
+		fields[3], // safeBidPrice
+		fields[4], // targetTs
+	}
+
+	fmt.Println(record)
+
+	// 파일 열기 (없으면 생성, 있으면 append)
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	writer := csv.NewWriter(f)
+	defer writer.Flush()
+
+	if err := writer.Write(record); err != nil {
+		return err
+	}
+
+	return nil
 }

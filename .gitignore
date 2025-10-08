@@ -5,6 +5,7 @@ dump.rdb
 *.sh
 *.log
 *.txt
+*.csv
 
 # Binaries for programs and plugins
 *.exe

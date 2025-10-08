@@ -62,7 +62,7 @@ func main() {
 		commons.SetTimeZone("Tg"),
 	)
 
-	tgMsg := fmt.Sprintf("## START %s %s\n- version 1.1.24", config.GetName(), *exchange)
+	tgMsg := fmt.Sprintf("## START %s %s\n- version 1.1.25", config.GetName(), *exchange)
 	switch *exchange {
 	default:
 		usage()
