@@ -230,10 +230,10 @@ func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, a
 	// Local logging
 	sampledLog("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
 
-	// Temp CSV
-	if err := saveToCSV("orderbook_log.csv", key, value); err != nil {
-		log.Println("csv save error:", err)
-	}
+	// // Temp CSV
+	// if err := saveToCSV("orderbook_log.csv", key, value); err != nil {
+	// 	log.Println("csv save error:", err)
+	// }
 	return nil
 }
 

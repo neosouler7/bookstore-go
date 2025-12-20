@@ -98,14 +98,9 @@ func GetPairMap(exchange string) map[string]interface{} {
 	m := make(map[string]interface{}, len(pairs)) // 초기 용량 설정
 
 	for _, pair := range pairs {
-		idx := strings.Index(pair, ":")
-		if idx < 0 {
-			log.Printf("Invalid pair format: %s", pair)
-			continue
-		}
+		market := strings.Split(pair, ":")[0]
+		symbol := strings.Split(pair, ":")[1]
 
-		market := pair[:idx]
-		symbol := pair[idx+1:]
 		m[symbol+market] = map[string]string{"market": market, "symbol": symbol}
 	}
 	return m
