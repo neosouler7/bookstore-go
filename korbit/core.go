@@ -104,7 +104,7 @@ func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
 }
 
 func rest(ctx context.Context, pairs []string, restQueue chan<- map[string]interface{}) {
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
 	pairIndex := 0

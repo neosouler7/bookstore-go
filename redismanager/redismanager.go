@@ -173,24 +173,41 @@ func (ob *orderbook) setOrderbook(api string) error {
 	actualLatency := int(currentTs - prevPubTs) // 현재 로컬 - 이전 pub (R의 경우 현재 ts를 pub하므로 일정해야함. 내 관리 포인트)
 
 	var targetTs string
-	switch api {
-	case "W":
-		// if serverLatency > 0 { // 과거값 버리는 로직 임시 제거(25.3.26)
-		targetTs = ob.ts
-		sMap.Store(key, targetTs)
-		if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
-			return fmt.Errorf("failed to publish websocket orderbook: %v", err)
-		}
-		// }
-	case "R":
+	// websocket: 메인 / rest: 서브 구조 삭제 (2025/12/21)
+	if serverLatency >= 0 {
 		if serverLatency == 0 && localLatency > 100 {
 			targetTs = currentTsStr // 일정 시간 이상 호가 갱신 되지 않을 시, 로컬 시간을 저장
 			// sMap.Store(key, targetTs) // pub은 하지만 로컬 비교를 위한 map에는 저장하지 않는 것이 맞음
+		} else {
+			targetTs = ob.ts // 그 외 일반 케이스
+			sMap.Store(key, targetTs)
+		}
+
+		if localLatency > 0 {
 			if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
-				return fmt.Errorf("failed to publish rest orderbook: %v", err)
+				return fmt.Errorf("failed to publish orderbook: %v", err)
 			}
 		}
 	}
+
+	// switch api {
+	// case "W":
+	// 	// if serverLatency > 0 { // 과거값 버리는 로직 임시 제거(25.3.26)
+	// 	targetTs = ob.ts
+	// 	sMap.Store(key, targetTs)
+	// 	if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
+	// 		return fmt.Errorf("failed to publish websocket orderbook: %v", err)
+	// 	}
+	// 	// }
+	// case "R":
+	// 	if serverLatency == 0 && localLatency > 100 {
+	// 		targetTs = currentTsStr // 일정 시간 이상 호가 갱신 되지 않을 시, 로컬 시간을 저장
+	// 		// sMap.Store(key, targetTs) // pub은 하지만 로컬 비교를 위한 map에는 저장하지 않는 것이 맞음
+	// 		if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
+	// 			return fmt.Errorf("failed to publish rest orderbook: %v", err)
+	// 		}
+	// 	}
+	// }
 
 	sOnce.Do(func() {
 		go subscribeCheck(ob.exchange)
