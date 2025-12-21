@@ -194,6 +194,24 @@ func FastHttpRequest2(exchange, method, pair string) map[string]interface{} {
 	var value map[string]interface{}
 
 	switch exchange {
+	case "bin":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		// add market, symbol since no value on return
+		rJson.(map[string]interface{})["market"] = market
+		rJson.(map[string]interface{})["symbol"] = symbol
+		value = rJson.(map[string]interface{})
+
+	case "bif":
+		var rJson interface{}
+		commons.Bytes2Json(body, &rJson)
+
+		// add market, symbol since no value on return
+		rJson.(map[string]interface{})["market"] = market
+		rJson.(map[string]interface{})["symbol"] = symbol
+		value = rJson.(map[string]interface{})
+
 	case "bmb":
 		var rJson []interface{}
 		commons.Bytes2Json(body, &rJson)
@@ -222,5 +240,6 @@ func FastHttpRequest2(exchange, method, pair string) map[string]interface{} {
 
 		value = rJson.(map[string]interface{})
 	}
+
 	return value
 }

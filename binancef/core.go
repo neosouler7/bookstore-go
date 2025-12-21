@@ -101,19 +101,42 @@ func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
 	}
 }
 
-func rest(pairs []string) {
-	c := make(chan map[string]interface{}, len(pairs)) // make buffered
-	buffer, rateLimit := config.GetRateLimit(exchange)
+func rest(ctx context.Context, pairs []string, restQueue chan<- map[string]interface{}) {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
 
+	pairIndex := 0
 	for {
-		for _, pair := range pairs {
-			go restmanager.FastHttpRequest(c, exchange, "GET", pair)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if ctx.Err() != nil {
+				return
+			}
 
-			// to avoid 429
-			time.Sleep(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
+			p := pairs[pairIndex]
+			pairIndex = (pairIndex + 1) % len(pairs)
+			rJson := restmanager.FastHttpRequest2(exchange, "GET", p)
+			select {
+			case restQueue <- rJson:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+}
 
-			rJson := <-c
-			go SetOrderbook("R", exchange, rJson)
+func processRestResponses(ctx context.Context, restQueue <-chan map[string]interface{}) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case rJson, ok := <-restQueue:
+			if !ok {
+				return
+			}
+			SetOrderbook("R", exchange, rJson)
 		}
 	}
 }
@@ -126,8 +149,8 @@ func Run(e string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Run 함수 종료 시 모든 컨텍스트 취소
 
-	wsQueue := make(chan []byte, 100) // WebSocket 메시지 큐
-	// restQueue := make(chan map[string]interface{}, len(pairs)*2) // REST 응답 큐
+	wsQueue := make(chan []byte, 100)                            // WebSocket 메시지 큐
+	restQueue := make(chan map[string]interface{}, len(pairs)*2) // REST 응답 큐
 
 	// ping
 	wg.Add(1)
@@ -154,18 +177,18 @@ func Run(e string) {
 		processWsMessages(ctx, wsQueue)
 	}()
 
-	// // rest
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	rest(ctx, pairs, restQueue)
-	// }()
+	// rest
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rest(ctx, pairs, restQueue)
+	}()
 
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	processRestResponses(ctx, restQueue)
-	// }()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		processRestResponses(ctx, restQueue)
+	}()
 
 	<-ctx.Done() // 웹소켓 에러 등으로 컨텍스트가 취소될 때까지 대기
 	wg.Wait()    // 모든 고루틴이 정상적으로 종료될 때까지 대기
