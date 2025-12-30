@@ -179,15 +179,15 @@ func FastHttpRequest2(exchange, method, pair string) map[string]interface{} {
 
 	statusCode, body, err := fastHttpClient().GetTimeout(nil, epqs.endPoint+"?"+epqs.queryString, time.Duration(5)*time.Second)
 	if err != nil {
-		errRestResult := fmt.Errorf("HTTP failed for %w", err)
+		errRestResult := fmt.Errorf("%s|%s HTTP failed for %w", market, symbol, err)
 		tgmanager.HandleErr(exchange, errRestResult)
 	}
 	if len(body) == 0 {
-		errHttpResponseBody := errors.New("HTTP empty response body")
+		errHttpResponseBody := fmt.Errorf("%s|%s HTTP empty response body", market, symbol)
 		tgmanager.HandleErr(exchange, errHttpResponseBody)
 	}
 	if statusCode != fasthttp.StatusOK {
-		errHttpResponseStatus := fmt.Errorf("HTTP with status %d", statusCode)
+		errHttpResponseStatus := fmt.Errorf("%s|%s HTTP with status %d", market, symbol, statusCode)
 		tgmanager.HandleErr(exchange, errHttpResponseStatus)
 	}
 
