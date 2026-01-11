@@ -102,7 +102,8 @@ func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
 }
 
 func rest(ctx context.Context, pairs []string, restQueue chan<- map[string]interface{}) {
-	ticker := time.NewTicker(150 * time.Millisecond)
+	buffer, rateLimit := config.GetRateLimit(exchange)
+	ticker := time.NewTicker(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
 	defer ticker.Stop()
 
 	pairIndex := 0
