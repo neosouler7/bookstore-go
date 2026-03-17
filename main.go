@@ -62,33 +62,23 @@ func main() {
 		commons.SetTimeZone("Tg"),
 	)
 
-	tgMsg := fmt.Sprintf("## START %s %s\n- version 1.2.0", config.GetName(), *exchange)
-	switch *exchange {
-	default:
-		usage()
-	case "bin":
-		tgmanager.SendMsg(tgMsg)
-		binance.Run(*exchange)
-	case "bif":
-		tgmanager.SendMsg(tgMsg)
-		binancef.Run(*exchange)
-	case "bmb":
-		tgmanager.SendMsg(tgMsg)
-		bithumb.Run(*exchange)
-	case "con":
-		tgmanager.SendMsg(tgMsg)
-		coinone.Run(*exchange)
-	case "gpx":
-		tgmanager.SendMsg(tgMsg)
-		gopax.Run(*exchange)
-	case "hbk":
-		tgmanager.SendMsg(tgMsg)
-		huobikorea.Run(*exchange)
-	case "kbt":
-		tgmanager.SendMsg(tgMsg)
-		korbit.Run(*exchange)
-	case "upb":
-		tgmanager.SendMsg(tgMsg)
-		upbit.Run(*exchange)
+	runners := map[string]func(string){
+		"bin": binance.Run,
+		"bif": binancef.Run,
+		"bmb": bithumb.Run,
+		"con": coinone.Run,
+		"gpx": gopax.Run,
+		"hbk": huobikorea.Run,
+		"kbt": korbit.Run,
+		"upb": upbit.Run,
 	}
+
+	run, ok := runners[*exchange]
+	if !ok {
+		usage()
+	}
+
+	tgMsg := fmt.Sprintf("## START %s %s\n- version 1.2.0", config.GetName(), *exchange)
+	tgmanager.SendMsg(tgMsg)
+	run(*exchange)
 }
