@@ -1,7 +1,6 @@
 package websocketmanager
 
 import (
-	"errors"
 	"net/url"
 	"sync"
 
@@ -14,7 +13,6 @@ var (
 	mu           sync.RWMutex // protects conn
 	wmu          sync.Mutex   // serializes all writes
 	once         sync.Once
-	ErrReadMsg   = errors.New("reading msg on ws")
 	SubscribeMsg = "%s websocket subscribed!\n"
 	FilteredMsg  = "%s websocket msg filtered - %s\n"
 )

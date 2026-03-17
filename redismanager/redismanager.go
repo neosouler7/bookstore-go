@@ -24,7 +24,6 @@ var (
 	sOnce      sync.Once
 	sMap       sync.Map
 	pMap       sync.Map
-	location   *time.Location
 	StampMicro = "Jan _2 15:04:05.000000"
 
 	// memory monitoring
@@ -44,37 +43,6 @@ type orderbook struct {
 	bestBidPrice string
 	ts           string
 	localTs      string
-}
-
-func init() {
-	location = commons.SetTimeZone("Redis")
-
-	// start memory monitoring
-	go monitorMemory()
-}
-
-// monitorMemory monitors heap memory usage
-func monitorMemory() {
-	ticker := time.NewTicker(30 * time.Second) // check every 30 seconds
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			runtime.ReadMemStats(&memStats)
-
-			// log if memory usage is high
-			if memStats.Alloc > 100*1024*1024 { // above 100MB
-				log.Printf("⚠️  high memory usage: Alloc=%d MB, Sys=%d MB, NumGC=%d",
-					memStats.Alloc/1024/1024,
-					memStats.Sys/1024/1024,
-					memStats.NumGC)
-
-				// also log cache sizes
-				log.Printf("📊 cache status: sMap and pMap active")
-			}
-		}
-	}
 }
 
 func client() *redis.Client {

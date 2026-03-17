@@ -71,11 +71,6 @@ func GetTg() tg {
 	return getCachedConfig().Tg
 }
 
-func GetApiKey(exchange string) apiKey {
-	c := getCachedConfig().ApiKey[exchange].(map[string]interface{})
-	return apiKey{c["public"].(string), c["secret"].(string)}
-}
-
 func GetRateLimit(exchange string) (float64, float64) {
 	c := getCachedConfig().RateLimit
 	return c["buffer"].(float64), c[exchange].(float64)
