@@ -1,38 +1,25 @@
 package binancef
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/neosouler7/bookstore-go/commons"
-	"github.com/neosouler7/bookstore-go/config"
-	"github.com/neosouler7/bookstore-go/restmanager"
-	"github.com/neosouler7/bookstore-go/tgmanager"
+	"github.com/neosouler7/bookstore-go/exchange"
 	"github.com/neosouler7/bookstore-go/websocketmanager"
 )
 
-var (
-	exchange string
-)
+const name = "bif"
 
-func pongWs(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
+type Binancef struct{}
 
-	for {
-		select {
-		case <-ticker.C:
-			websocketmanager.Ping(exchange)
-		case <-ctx.Done():
-			return
-		}
-	}
+func (b *Binancef) Ping() {
+	websocketmanager.Ping(name)
 }
 
-func subscribeWs(pairs []string, wg *sync.WaitGroup) {
+func (b *Binancef) Subscribe(pairs []string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	time.Sleep(time.Second * 1)
 
@@ -46,151 +33,24 @@ func subscribeWs(pairs []string, wg *sync.WaitGroup) {
 	streams := strings.Join(streamSlice, ",")
 	msg := fmt.Sprintf("{\"method\": \"SUBSCRIBE\",\"params\": [%s],\"id\": %d}", streams, time.Now().UnixNano()/100000)
 
-	websocketmanager.SendMsg(exchange, msg)
-	fmt.Printf(websocketmanager.SubscribeMsg, exchange)
+	websocketmanager.SendMsg(name, msg)
+	fmt.Printf(websocketmanager.SubscribeMsg, name)
 }
 
-func receiveWs(ctx context.Context, cancel context.CancelFunc, msgQueue chan<- []byte) {
-	defer close(msgQueue)
-
-	// unblock read immediately when ctx is cancelled
-	go func() {
-		<-ctx.Done()
-		websocketmanager.Close()
-		tgmanager.HandleErr(exchange, fmt.Errorf("receiveWs lost"))
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
-			if err != nil {
-				tgmanager.HandleErr(exchange, err)
-				cancel() // cancel all related goroutines on error
-				return
-			}
-
-			select {
-			case msgQueue <- msgBytes:
-			case <-ctx.Done():
-				return
-			}
-		}
+func (b *Binancef) HandleWsMessage(msgBytes []byte) {
+	if strings.Contains(string(msgBytes), "result") {
+		fmt.Printf(websocketmanager.FilteredMsg, name, string(msgBytes))
+		return
 	}
+	var rJson interface{}
+	commons.Bytes2Json(msgBytes, &rJson)
+	SetOrderbook("W", name, rJson.(map[string]interface{}))
 }
 
-func processWsMessages(ctx context.Context, msgQueue <-chan []byte) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msgBytes, ok := <-msgQueue:
-			if !ok {
-				return
-			}
-			if strings.Contains(string(msgBytes), "result") {
-				fmt.Printf(websocketmanager.FilteredMsg, exchange, string(msgBytes))
-			} else {
-				var rJson interface{}
-				commons.Bytes2Json(msgBytes, &rJson)
-				SetOrderbook("W", exchange, rJson.(map[string]interface{}))
-			}
-		}
-	}
-}
-
-func rest(ctx context.Context, pairs []string, restQueue chan<- map[string]interface{}) {
-	buffer, rateLimit := config.GetRateLimit(exchange)
-	ticker := time.NewTicker(time.Millisecond * time.Duration(int(1/rateLimit*10*100*buffer)))
-	defer ticker.Stop()
-
-	pairIndex := 0
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if ctx.Err() != nil {
-				return
-			}
-
-			p := pairs[pairIndex]
-			pairIndex = (pairIndex + 1) % len(pairs)
-			rJson := restmanager.FastHttpRequest2(exchange, "GET", p)
-			select {
-			case restQueue <- rJson:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}
-}
-
-func processRestResponses(ctx context.Context, restQueue <-chan map[string]interface{}) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case rJson, ok := <-restQueue:
-			if !ok {
-				return
-			}
-			SetOrderbook("R", exchange, rJson)
-		}
-	}
+func (b *Binancef) HandleRestResponse(rJson map[string]interface{}) {
+	SetOrderbook("R", name, rJson)
 }
 
 func Run(e string) {
-	exchange = e
-	pairs := config.GetPairs(exchange)
-	var wg sync.WaitGroup
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // cancel all contexts when Run exits
-
-	wsQueue := make(chan []byte, 100)                            // WebSocket message queue
-	restQueue := make(chan map[string]interface{}, len(pairs)*2) // REST response queue
-
-	// ping
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		pongWs(ctx)
-	}()
-
-	// subscribe websocket stream
-	wg.Add(1)
-	go subscribeWs(pairs, &wg)
-
-	// receive websocket msg
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		receiveWs(ctx, cancel, wsQueue)
-	}()
-
-	// process websocket messages
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		processWsMessages(ctx, wsQueue)
-	}()
-
-	// rest
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		rest(ctx, pairs, restQueue)
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		processRestResponses(ctx, restQueue)
-	}()
-
-	<-ctx.Done() // wait until context is cancelled (e.g. WebSocket error)
-	wg.Wait()    // wait for all goroutines to finish cleanly
+	exchange.Run(e, &Binancef{})
 }
