@@ -40,13 +40,13 @@ func (b *Bithumb) Subscribe(pairs []string, wg *sync.WaitGroup) {
 }
 
 func (b *Bithumb) HandleWsMessage(msgBytes []byte) {
-	if strings.Contains(string(msgBytes), "status") {
+	var rJson map[string]interface{}
+	commons.Bytes2Json(msgBytes, &rJson)
+	if _, ok := rJson["status"]; ok {
 		fmt.Println("PONG") // {"status":"UP"}
 		return
 	}
-	var rJson interface{}
-	commons.Bytes2Json(msgBytes, &rJson)
-	SetOrderbook("W", name, rJson.(map[string]interface{}))
+	SetOrderbook("W", name, rJson)
 }
 
 func (b *Bithumb) HandleRestResponse(rJson map[string]interface{}) {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/neosouler7/bookstore-go/config"
@@ -93,16 +94,20 @@ func GetTargetVolumeOrAmountMap(exchange string) map[string]string {
 	return m
 }
 
+var pairMapCache sync.Map
+
 func GetPairMap(exchange string) map[string]interface{} {
+	if v, ok := pairMapCache.Load(exchange); ok {
+		return v.(map[string]interface{})
+	}
 	pairs := config.GetPairs(exchange)
-	m := make(map[string]interface{}, len(pairs)) // pre-allocate map capacity
-
+	m := make(map[string]interface{}, len(pairs))
 	for _, pair := range pairs {
-		market := strings.Split(pair, ":")[0]
-		symbol := strings.Split(pair, ":")[1]
-
+		parts := strings.SplitN(pair, ":", 3)
+		market, symbol := parts[0], parts[1]
 		m[symbol+market] = map[string]string{"market": market, "symbol": symbol}
 	}
+	pairMapCache.Store(exchange, m)
 	return m
 }
 

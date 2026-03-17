@@ -37,15 +37,20 @@ func (k *Korbit) Subscribe(pairs []string, wg *sync.WaitGroup) {
 }
 
 func (k *Korbit) HandleWsMessage(msgBytes []byte) {
-	if strings.Contains(string(msgBytes), "orderbook") {
-		var rJson interface{}
-		commons.Bytes2Json(msgBytes, &rJson)
-		SetOrderbook("W", name, rJson.(map[string]interface{}))
-	} else if strings.Contains(string(msgBytes), "pong") {
-		fmt.Println("PONG")
-	} else {
-		tgmanager.HandleErr(name, fmt.Errorf("unknown message: %s", string(msgBytes)))
+	var rJson map[string]interface{}
+	commons.Bytes2Json(msgBytes, &rJson)
+	if rType, ok := rJson["type"].(string); ok {
+		switch rType {
+		case "orderbook":
+			SetOrderbook("W", name, rJson)
+		case "pong":
+			fmt.Println("PONG")
+		default:
+			tgmanager.HandleErr(name, fmt.Errorf("unknown message: %s", rType))
+		}
+		return
 	}
+	tgmanager.HandleErr(name, fmt.Errorf("unknown message: %s", string(msgBytes)))
 }
 
 func (k *Korbit) HandleRestResponse(rJson map[string]interface{}) {

@@ -30,17 +30,17 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	bidResponse = rData["bids"].([]interface{})
 
 	// WS returns asks in descending price order; sort ascending before passing to GetObTargetPrice
-	sort.Slice(askResponse, func(i, j int) bool {
-		priceIStr := askResponse[i].(map[string]interface{})["price"].(string)
-		priceJStr := askResponse[j].(map[string]interface{})["price"].(string)
-
-		priceI, err1 := strconv.ParseFloat(priceIStr, 64)
-		priceJ, err2 := strconv.ParseFloat(priceJStr, 64)
-
-		if err1 != nil || err2 != nil {
-			tgmanager.HandleErr(exchange, fmt.Errorf("price parse error: %v, %v\n", err1, err2))
+	askPrices := make([]float64, len(askResponse))
+	for i, v := range askResponse {
+		priceStr := v.(map[string]interface{})["price"].(string)
+		p, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			tgmanager.HandleErr(exchange, fmt.Errorf("price parse error: %v", err))
 		}
-		return priceI < priceJ
+		askPrices[i] = p
+	}
+	sort.Slice(askResponse, func(i, j int) bool {
+		return askPrices[i] < askPrices[j]
 	})
 
 	for i := 0; i < commons.Min(len(askResponse), len(bidResponse))-1; i++ {
