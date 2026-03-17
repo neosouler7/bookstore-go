@@ -58,12 +58,13 @@ func (tc *TimestampCache) Store(key, timestamp string) {
 
 // Load retrieves the timestamp for a given key
 func (tc *TimestampCache) Load(key string) (string, bool) {
+	now := time.Now()
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
 	if element, exists := tc.cache[key]; exists {
 		entry := element.Value.(*cacheEntry)
-		entry.lastUsed = time.Now()
+		entry.lastUsed = now
 
 		// move accessed entry to front
 		tc.list.MoveToFront(element)

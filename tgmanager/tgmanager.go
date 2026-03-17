@@ -47,7 +47,7 @@ func (b *bot) Bot() *tgbotapi.BotAPI {
 				log.Fatalln(errGetBot)
 			}
 			t = tgPointer
-			t.Debug = true
+			t.Debug = false
 		}
 	})
 	return t
