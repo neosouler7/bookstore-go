@@ -23,8 +23,6 @@ const (
 	bif string = "https://fapi.binance.com"
 	bmb string = "https://api.bithumb.com"
 	con string = "https://api.coinone.co.kr"
-	gpx string = "https://api.gopax.co.kr"
-	hbk string = "https://api-cloud.huobi.co.kr"
 	kbt string = "https://api.korbit.co.kr"
 	upb string = "https://api.upbit.com"
 )
@@ -48,12 +46,6 @@ func (e *epqs) getEpqs(exchange, market, symbol string) {
 	case "con":
 		e.endPoint = con + fmt.Sprintf("/public/v2/orderbook/%s/%s", strings.ToUpper(market), strings.ToUpper(symbol))
 		e.queryString = ""
-	case "gpx":
-		e.endPoint = gpx + fmt.Sprintf("/trading-pairs/%s-%s/book", strings.ToUpper(symbol), strings.ToUpper(market))
-		e.queryString = "" // gpx does not use querystring
-	case "hbk":
-		e.endPoint = hbk + "/market/depth"
-		e.queryString = fmt.Sprintf("symbol=%s%s&depth=20&type=step0", strings.ToLower(symbol), strings.ToLower(market))
 	case "kbt":
 		// e.endPoint = kbt + "/v1/orderbook"
 		// e.queryString = fmt.Sprintf("currency_pair=%s_%s", strings.ToLower(symbol), strings.ToLower(market))
@@ -138,19 +130,6 @@ func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair str
 
 		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
 	case "con":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		c <- rJson.(map[string]interface{})
-	case "gpx":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		// add market, symbol since no value on return
-		rJson.(map[string]interface{})["market"] = market
-		rJson.(map[string]interface{})["symbol"] = symbol
-		c <- rJson.(map[string]interface{})
-	case "hbk":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
 

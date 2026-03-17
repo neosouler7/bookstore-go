@@ -10,18 +10,11 @@
         "token": "",
         "chat_ids": []
     },
-    "ApiKey": {
-        "gpx": {
-            "public": "",
-            "secret": ""
-        }
-    },
     "RateLimit": {
         "buffer": 1.2,
         "bin": 20,
         "bmb": 135,
         "con": 5,
-        "hbk": 10,
         "kbt": 12,
         "upb": 10
     },

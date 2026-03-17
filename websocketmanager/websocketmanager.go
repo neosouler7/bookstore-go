@@ -24,8 +24,6 @@ const (
 	bif string = "fstream.binance.com"
 	bmb string = "ws-api.bithumb.com"
 	con string = "stream.coinone.co.kr"
-	gpx string = "wsapi.gopax.co.kr"
-	hbk string = "api-cloud.huobi.co.kr"
 	kbt string = "ws-api.korbit.co.kr" // "ws2.korbit.co.kr"
 	upb string = "api.upbit.com"
 )
@@ -71,12 +69,6 @@ func (h *hostPath) getHostPath(exchange string) {
 	case "con":
 		h.host = con
 		h.path = ""
-	case "gpx":
-		h.host = gpx
-		h.path = ""
-	case "hbk":
-		h.host = hbk
-		h.path = "/ws"
 	case "kbt":
 		h.host = kbt
 		h.path = "/v2/public" // "/v1/user/push"

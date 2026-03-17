@@ -13,8 +13,6 @@ import (
 	"github.com/neosouler7/bookstore-go/coinone"
 	"github.com/neosouler7/bookstore-go/commons"
 	"github.com/neosouler7/bookstore-go/config"
-	"github.com/neosouler7/bookstore-go/gopax"
-	"github.com/neosouler7/bookstore-go/huobikorea"
 	"github.com/neosouler7/bookstore-go/korbit"
 	"github.com/neosouler7/bookstore-go/tgmanager"
 	"github.com/neosouler7/bookstore-go/upbit"
@@ -67,8 +65,6 @@ func main() {
 		"bif": binancef.Run,
 		"bmb": bithumb.Run,
 		"con": coinone.Run,
-		"gpx": gopax.Run,
-		"hbk": huobikorea.Run,
 		"kbt": korbit.Run,
 		"upb": upbit.Run,
 	}
