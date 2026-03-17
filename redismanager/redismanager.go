@@ -22,8 +22,8 @@ var (
 	rdb        *redis.Client
 	cOnce      sync.Once
 	sOnce      sync.Once
-	sMap       *TimestampCache // changed from sync.Map to TimestampCache
-	pMap       *TimestampCache // changed from sync.Map to TimestampCache
+	sMap       sync.Map
+	pMap       sync.Map
 	location   *time.Location
 	StampMicro = "Jan _2 15:04:05.000000"
 
@@ -47,10 +47,6 @@ type orderbook struct {
 }
 
 func init() {
-	// initialize cache (capacity ~2x number of trading pairs)
-	sMap = NewTimestampCache(1000) // max 1000 keys
-	pMap = NewTimestampCache(1000) // max 1000 keys
-
 	location = commons.SetTimeZone("Redis")
 
 	// start memory monitoring
@@ -75,7 +71,7 @@ func monitorMemory() {
 					memStats.NumGC)
 
 				// also log cache sizes
-				log.Printf("📊 cache status: sMap=%d, pMap=%d", sMap.Len(), pMap.Len())
+				log.Printf("📊 cache status: sMap and pMap active")
 			}
 		}
 	}
@@ -159,8 +155,8 @@ func (ob *orderbook) setOrderbook(api string) error {
 
 	// manage syncTs to prevent race conditions between goroutines
 	prevSyncTsStr := "0"
-	if prevSyncTsTemp, ok := sMap.Load(key); ok {
-		prevSyncTsStr = prevSyncTsTemp
+	if v, ok := sMap.Load(key); ok {
+		prevSyncTsStr = v.(string)
 	}
 	prevSyncTs, err := strconv.ParseInt(prevSyncTsStr, 10, 64)
 	if err != nil {
@@ -169,8 +165,8 @@ func (ob *orderbook) setOrderbook(api string) error {
 
 	// calculate latency between actual pubTs and current time
 	prevPubTsStr := "0"
-	if prevPubTsTemp, ok := pMap.Load(key); ok {
-		prevPubTsStr = prevPubTsTemp
+	if v, ok := pMap.Load(key); ok {
+		prevPubTsStr = v.(string)
 	}
 	prevPubTs, err := strconv.ParseInt(prevPubTsStr, 10, 64)
 	if err != nil {
@@ -248,7 +244,7 @@ func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, a
 
 	// Redis Pub — async, skip if a newer update has already been stored
 	go func(key, targetTs, value string) {
-		if current, ok := sMap.Load(key); ok && current > targetTs {
+		if v, ok := sMap.Load(key); ok && v.(string) > targetTs {
 			return // superseded by a newer update
 		}
 		if err := client().Publish(ctx, key, value).Err(); err != nil {
