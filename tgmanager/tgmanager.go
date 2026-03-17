@@ -99,7 +99,7 @@ func SendMsg(tgMsg string) {
 // 	data, err := os.ReadFile(path)
 // 	if err != nil {
 // 		if os.IsNotExist(err) {
-// 			return time.Time{}, nil // 파일 없으면 0으로 간주
+// 			return time.Time{}, nil // treat missing file as zero time
 // 		}
 // 		return time.Time{}, err
 // 	}
@@ -146,7 +146,7 @@ func HandleErr(exchange string, err error) {
 	// now := time.Now()
 	// lastSent, readErr := readLastSentTime(exchange)
 	// if readErr != nil {
-	// 	log.Println("Failed to read last sent time:", readErr) // 메시지 전송 여부 판단이 불확실하므로 보내고 기록하는 걸로 가정
+	// 	log.Println("Failed to read last sent time:", readErr) // assume send and record since delivery is uncertain
 	// }
 
 	// if now.Sub(lastSent) >= 1*time.Second {

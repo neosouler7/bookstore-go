@@ -74,7 +74,7 @@ func GetTargetPriceByAmount(amount string, orderbook interface{}) string {
 
 func GetTargetVolumeOrAmountMap(exchange string) map[string]string {
 	pairs := config.GetPairs(exchange)
-	m := make(map[string]string, len(pairs)) // 초기 용량 설정
+	m := make(map[string]string, len(pairs)) // pre-allocate map capacity
 
 	for _, p := range pairs {
 		idx1 := strings.Index(p, ":")
@@ -95,7 +95,7 @@ func GetTargetVolumeOrAmountMap(exchange string) map[string]string {
 
 func GetPairMap(exchange string) map[string]interface{} {
 	pairs := config.GetPairs(exchange)
-	m := make(map[string]interface{}, len(pairs)) // 초기 용량 설정
+	m := make(map[string]interface{}, len(pairs)) // pre-allocate map capacity
 
 	for _, pair := range pairs {
 		market := strings.Split(pair, ":")[0]

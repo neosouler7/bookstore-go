@@ -29,7 +29,7 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	askResponse = rData["asks"].([]interface{})
 	bidResponse = rData["bids"].([]interface{})
 
-	// websocket만 price 내림차순으로 리턴 받긴 하지만, GetObTargetPrice 에 전달하기 위해 ask만 price 기준 오름차순 정렬
+	// WS returns asks in descending price order; sort ascending before passing to GetObTargetPrice
 	sort.Slice(askResponse, func(i, j int) bool {
 		priceIStr := askResponse[i].(map[string]interface{})["price"].(string)
 		priceJStr := askResponse[j].(map[string]interface{})["price"].(string)

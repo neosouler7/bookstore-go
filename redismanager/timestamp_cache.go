@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// TimestampCache LRU 캐시로 타임스탬프를 관리
+// TimestampCache manages timestamps with an LRU cache
 type TimestampCache struct {
 	capacity int
 	cache    map[string]*list.Element
@@ -14,14 +14,14 @@ type TimestampCache struct {
 	mutex    sync.RWMutex
 }
 
-// cacheEntry 캐시에 저장될 항목
+// cacheEntry is an item stored in the cache
 type cacheEntry struct {
 	key       string
 	timestamp string
 	lastUsed  time.Time
 }
 
-// NewTimestampCache 새로운 타임스탬프 캐시 생성
+// NewTimestampCache creates a new timestamp cache
 func NewTimestampCache(capacity int) *TimestampCache {
 	return &TimestampCache{
 		capacity: capacity,
@@ -30,18 +30,18 @@ func NewTimestampCache(capacity int) *TimestampCache {
 	}
 }
 
-// Store 키와 타임스탬프를 캐시에 저장
+// Store saves a key-timestamp pair to the cache
 func (tc *TimestampCache) Store(key, timestamp string) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	// 기존 키가 있으면 제거
+	// remove existing entry if present
 	if element, exists := tc.cache[key]; exists {
 		tc.list.Remove(element)
 		delete(tc.cache, key)
 	}
 
-	// 새 항목 생성 및 저장
+	// create and store new entry
 	entry := &cacheEntry{
 		key:       key,
 		timestamp: timestamp,
@@ -50,13 +50,13 @@ func (tc *TimestampCache) Store(key, timestamp string) {
 	element := tc.list.PushFront(entry)
 	tc.cache[key] = element
 
-	// 용량 초과 시 LRU 정리
+	// evict LRU entry if over capacity
 	if tc.list.Len() > tc.capacity {
 		tc.evictLRU()
 	}
 }
 
-// Load 키에 해당하는 타임스탬프 조회
+// Load retrieves the timestamp for a given key
 func (tc *TimestampCache) Load(key string) (string, bool) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
@@ -65,7 +65,7 @@ func (tc *TimestampCache) Load(key string) (string, bool) {
 		entry := element.Value.(*cacheEntry)
 		entry.lastUsed = time.Now()
 
-		// 사용된 항목을 맨 앞으로 이동
+		// move accessed entry to front
 		tc.list.MoveToFront(element)
 
 		return entry.timestamp, true
@@ -73,13 +73,13 @@ func (tc *TimestampCache) Load(key string) (string, bool) {
 	return "", false
 }
 
-// evictLRU 가장 오래 사용되지 않은 항목 제거
+// evictLRU removes the least recently used entry
 func (tc *TimestampCache) evictLRU() {
 	if tc.list.Len() == 0 {
 		return
 	}
 
-	// 맨 뒤의 항목 제거 (LRU)
+	// remove the back entry (LRU)
 	element := tc.list.Back()
 	entry := element.Value.(*cacheEntry)
 
@@ -87,14 +87,14 @@ func (tc *TimestampCache) evictLRU() {
 	delete(tc.cache, entry.key)
 }
 
-// Len 현재 캐시 크기 반환
+// Len returns the current cache size
 func (tc *TimestampCache) Len() int {
 	tc.mutex.RLock()
 	defer tc.mutex.RUnlock()
 	return tc.list.Len()
 }
 
-// Cleanup 오래된 항목들 정리 (선택적)
+// Cleanup removes stale entries (optional)
 func (tc *TimestampCache) Cleanup(maxAge time.Duration) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()

@@ -11,8 +11,8 @@ import (
 
 var (
 	w            *websocket.Conn
-	mu           sync.RWMutex // conn 보호
-	wmu          sync.Mutex   // 모든 Write 직렬화
+	mu           sync.RWMutex // protects conn
+	wmu          sync.Mutex   // serializes all writes
 	once         sync.Once
 	ErrReadMsg   = errors.New("reading msg on ws")
 	SubscribeMsg = "%s websocket subscribed!\n"

@@ -83,7 +83,7 @@ func getCachedConfig(key string) reflect.Value {
 }
 
 func getConfig(key string) interface{} {
-	cacheOnce.Do(loadConfig) // 최초 1회만 실행
+	cacheOnce.Do(loadConfig) // executed only once
 	return getCachedConfig(key).Interface()
 }
 

@@ -24,12 +24,12 @@ var (
 	rdb        *redis.Client
 	cOnce      sync.Once
 	sOnce      sync.Once
-	sMap       *TimestampCache // sync.Map에서 TimestampCache로 변경
-	pMap       *TimestampCache // sync.Map에서 TimestampCache로 변경
+	sMap       *TimestampCache // changed from sync.Map to TimestampCache
+	pMap       *TimestampCache // changed from sync.Map to TimestampCache
 	location   *time.Location
 	StampMicro = "Jan _2 15:04:05.000000"
 
-	// 메모리 모니터링 관련
+	// memory monitoring
 	memStats     runtime.MemStats
 	lastMemCheck time.Time
 )
@@ -47,19 +47,19 @@ type orderbook struct {
 }
 
 func init() {
-	// 캐시 초기화 (용량은 거래쌍 수 * 2 정도로 설정)
-	sMap = NewTimestampCache(1000) // 최대 1000개 키
-	pMap = NewTimestampCache(1000) // 최대 1000개 키
+	// initialize cache (capacity ~2x number of trading pairs)
+	sMap = NewTimestampCache(1000) // max 1000 keys
+	pMap = NewTimestampCache(1000) // max 1000 keys
 
 	location = commons.SetTimeZone("Redis")
 
-	// 메모리 모니터링 시작
+	// start memory monitoring
 	go monitorMemory()
 }
 
-// monitorMemory 메모리 사용량 모니터링
+// monitorMemory monitors heap memory usage
 func monitorMemory() {
-	ticker := time.NewTicker(30 * time.Second) // 30초마다 체크
+	ticker := time.NewTicker(30 * time.Second) // check every 30 seconds
 	defer ticker.Stop()
 
 	for {
@@ -67,15 +67,15 @@ func monitorMemory() {
 		case <-ticker.C:
 			runtime.ReadMemStats(&memStats)
 
-			// 메모리 사용량이 높으면 로그 출력
-			if memStats.Alloc > 100*1024*1024 { // 100MB 이상
-				log.Printf("⚠️  메모리 사용량 높음: Alloc=%d MB, Sys=%d MB, NumGC=%d",
+			// log if memory usage is high
+			if memStats.Alloc > 100*1024*1024 { // above 100MB
+				log.Printf("⚠️  high memory usage: Alloc=%d MB, Sys=%d MB, NumGC=%d",
 					memStats.Alloc/1024/1024,
 					memStats.Sys/1024/1024,
 					memStats.NumGC)
 
-				// 캐시 크기도 함께 출력
-				log.Printf("📊 캐시 상태: sMap=%d, pMap=%d", sMap.Len(), pMap.Len())
+				// also log cache sizes
+				log.Printf("📊 cache status: sMap=%d, pMap=%d", sMap.Len(), pMap.Len())
 			}
 		}
 	}
@@ -104,12 +104,12 @@ func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice
 	targetVolumeOrAmount := strings.Split(commons.GetTargetVolumeOrAmountMap(exchange)[market+":"+symbol], "|")
 	safeTarget, bestTarget := targetVolumeOrAmount[0], targetVolumeOrAmount[1]
 
-	// volume 기준으로 targetPrice 계산 (deprecated at June 2025-for fbV1)
+	// calculate targetPrice by volume (deprecated June 2025 - for fbV1)
 	// safeAskPrice, safeBidPrice := commons.GetTargetPriceByVolume(safeTarget, askSlice), commons.GetTargetPriceByVolume(safeTarget, bidSlice)
 	// bestAskPrice, bestBidPrice := commons.GetTargetPriceByVolume(bestTarget, askSlice), commons.GetTargetPriceByVolume(bestTarget, bidSlice)
 	// fmt.Printf("safeAskPrice2: %s, safeBidPrice2: %s, bestAskPrice2: %s, bestBidPrice2: %s\n", safeAskPrice2, safeBidPrice2, bestAskPrice2, bestBidPrice2)
 
-	// amount 기준으로 targetPrice 계산 (for fbV2)
+	// calculate targetPrice by amount (for fbV2)
 	safeAskPrice, safeBidPrice := commons.GetTargetPriceByAmount(safeTarget, askSlice), commons.GetTargetPriceByAmount(safeTarget, bidSlice)
 	bestAskPrice, bestBidPrice := commons.GetTargetPriceByAmount(bestTarget, askSlice), commons.GetTargetPriceByAmount(bestTarget, bidSlice)
 
@@ -148,7 +148,7 @@ func (ob *orderbook) setOrderbook(api string) error {
 
 	key := fmt.Sprintf("ob:%s:%s:%s", ob.exchange, ob.market, ob.symbol)
 
-	// 내부 goroutine의 race issue 방지 위해 syncTs를 관리
+	// manage syncTs to prevent race conditions between goroutines
 	prevSyncTsStr := "0"
 	if prevSyncTsTemp, ok := sMap.Load(key); ok {
 		prevSyncTsStr = prevSyncTsTemp
@@ -158,7 +158,7 @@ func (ob *orderbook) setOrderbook(api string) error {
 		prevSyncTs = 0
 	}
 
-	// 실제 pubTs와 현재 간의 Latency를 계산하기 위해
+	// calculate latency between actual pubTs and current time
 	prevPubTsStr := "0"
 	if prevPubTsTemp, ok := pMap.Load(key); ok {
 		prevPubTsStr = prevPubTsTemp
@@ -168,18 +168,18 @@ func (ob *orderbook) setOrderbook(api string) error {
 		prevPubTs = 0
 	}
 
-	serverLatency := int(obTs - prevSyncTs)     // 서버 - 이전 로컬 저장 (양수일 경우만 pub)
-	localLatency := int(currentTs - prevSyncTs) // 현재 로컬 - 이전 로컬 저장 (값이 커지면 서버의 호가 갱신이 되지 않고 있다는 뜻)
-	actualLatency := int(currentTs - prevPubTs) // 현재 로컬 - 이전 pub (R의 경우 현재 ts를 pub하므로 일정해야함. 내 관리 포인트)
+	serverLatency := int(obTs - prevSyncTs)     // server ts - prev local ts (only publish if positive)
+	localLatency := int(currentTs - prevSyncTs) // current local - prev local (large value means server orderbook is stale)
+	actualLatency := int(currentTs - prevPubTs) // current local - prev pub (should be stable for REST; our responsibility to maintain)
 
 	var targetTs string
-	// websocket: 메인 / rest: 서브 구조 삭제 (2025/12/21)
+	// removed WS-primary / REST-secondary architecture (2025/12/21)
 	if serverLatency >= 0 {
 		if serverLatency == 0 && localLatency > 100 {
-			targetTs = currentTsStr // 일정 시간 이상 호가 갱신 되지 않을 시, 로컬 시간을 저장
-			// sMap.Store(key, targetTs) // pub은 하지만 로컬 비교를 위한 map에는 저장하지 않는 것이 맞음
+			targetTs = currentTsStr // use local time if orderbook hasn't updated for a while
+			// sMap.Store(key, targetTs) // publish but do NOT store to sMap — local comparison should use previous ts
 		} else {
-			targetTs = ob.ts // 그 외 일반 케이스
+			targetTs = ob.ts // normal case
 			sMap.Store(key, targetTs)
 		}
 
@@ -192,7 +192,7 @@ func (ob *orderbook) setOrderbook(api string) error {
 
 	// switch api {
 	// case "W":
-	// 	// if serverLatency > 0 { // 과거값 버리는 로직 임시 제거(25.3.26)
+	// 	// if serverLatency > 0 { // temporarily removed stale-value discard logic (2025/03/26)
 	// 	targetTs = ob.ts
 	// 	sMap.Store(key, targetTs)
 	// 	if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
@@ -201,8 +201,8 @@ func (ob *orderbook) setOrderbook(api string) error {
 	// 	// }
 	// case "R":
 	// 	if serverLatency == 0 && localLatency > 100 {
-	// 		targetTs = currentTsStr // 일정 시간 이상 호가 갱신 되지 않을 시, 로컬 시간을 저장
-	// 		// sMap.Store(key, targetTs) // pub은 하지만 로컬 비교를 위한 map에는 저장하지 않는 것이 맞음
+	// 		targetTs = currentTsStr // use local time if orderbook hasn't updated for a while
+	// 		// sMap.Store(key, targetTs) // publish but do NOT store to sMap — local comparison should use previous ts
 	// 		if err := publish(key, targetTs, ob, serverLatency, localLatency, actualLatency, api); err != nil {
 	// 			return fmt.Errorf("failed to publish rest orderbook: %v", err)
 	// 		}
@@ -216,8 +216,8 @@ func (ob *orderbook) setOrderbook(api string) error {
 	return nil
 }
 
-const sampleRate = 1000      // 샘플링 비율 (예: 1000개의 로그 중 1개만 출력)
-const initialLogCount = 1000 // 초기 출력 카운트 (처음 10개는 무조건 출력)
+const sampleRate = 1000      // sampling rate (e.g. 1 log per 1000)
+const initialLogCount = 1000 // initial log count (first 1000 are always printed)
 var logCount int32 = 0
 
 func sampledLog(format string, v ...interface{}) {
@@ -298,12 +298,12 @@ func ReadLastSentTime(exchange string) (time.Time, error) {
 }
 
 func saveToCSV(filename, key, value string) error {
-	// value를 '|'로 분리
+	// split value by '|'
 	fields := strings.Split(value, "|")
 
-	// 최종 CSV 컬럼 순서
+	// final CSV column order
 	record := []string{
-		key,       // 추가된 key
+		key,       // prepended key
 		fields[0], // safeAskPrice
 		fields[1], // bestAskPrice
 		fields[2], // bestBidPrice
@@ -313,7 +313,7 @@ func saveToCSV(filename, key, value string) error {
 
 	fmt.Println(record)
 
-	// 파일 열기 (없으면 생성, 있으면 append)
+	// open file (create if not exists, append otherwise)
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return err

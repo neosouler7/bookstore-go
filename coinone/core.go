@@ -126,8 +126,8 @@ func Run(e string) {
 	pairs := config.GetPairs(exchange)
 	var wg sync.WaitGroup
 	done := make(chan struct{})
-	wsQueue := make(chan []byte, 1)                            // WebSocket 메시지 큐
-	restQueue := make(chan map[string]interface{}, len(pairs)) // REST 응답 큐
+	wsQueue := make(chan []byte, 1)                            // WebSocket message queue
+	restQueue := make(chan map[string]interface{}, len(pairs)) // REST response queue
 
 	// ping
 	wg.Add(1)

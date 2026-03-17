@@ -53,7 +53,7 @@ func subscribeWs(pairs []string, wg *sync.WaitGroup) {
 func receiveWs(ctx context.Context, cancel context.CancelFunc, msgQueue chan<- []byte) {
 	defer close(msgQueue)
 
-	// ctx 취소 시 즉시 읽기 차단 해제
+	// unblock read immediately when ctx is cancelled
 	go func() {
 		<-ctx.Done()
 		websocketmanager.Close()
@@ -68,7 +68,7 @@ func receiveWs(ctx context.Context, cancel context.CancelFunc, msgQueue chan<- [
 			_, msgBytes, err := websocketmanager.Conn(exchange).ReadMessage()
 			if err != nil {
 				tgmanager.HandleErr(exchange, err)
-				cancel() // 에러 발생 시 모든 관련 작업 취소
+				cancel() // cancel all related goroutines on error
 				return
 			}
 
@@ -150,10 +150,10 @@ func Run(e string) {
 	var wg sync.WaitGroup
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // Run 함수 종료 시 모든 컨텍스트 취소
+	defer cancel() // cancel all contexts when Run exits
 
-	wsQueue := make(chan []byte, 100)                            // WebSocket 메시지 큐
-	restQueue := make(chan map[string]interface{}, len(pairs)*2) // REST 응답 큐
+	wsQueue := make(chan []byte, 100)                            // WebSocket message queue
+	restQueue := make(chan map[string]interface{}, len(pairs)*2) // REST response queue
 
 	// ping
 	wg.Add(1)
@@ -193,6 +193,6 @@ func Run(e string) {
 		processRestResponses(ctx, restQueue)
 	}()
 
-	<-ctx.Done() // 웹소켓 에러 등으로 컨텍스트가 취소될 때까지 대기
-	wg.Wait()    // 모든 고루틴이 정상적으로 종료될 때까지 대기
+	<-ctx.Done() // wait until context is cancelled (e.g. WebSocket error)
+	wg.Wait()    // wait for all goroutines to finish cleanly
 }

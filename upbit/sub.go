@@ -24,8 +24,8 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	ts := commons.FormatTs(strconv.Itoa(tsFloat))
 	orderbooks := rJson["orderbook_units"].([]interface{})
 
-	askSlice := make([]interface{}, 0, len(orderbooks)) // 용량 미리 할당
-	bidSlice := make([]interface{}, 0, len(orderbooks)) // 용량 미리 할당
+	askSlice := make([]interface{}, 0, len(orderbooks)) // pre-allocate capacity
+	bidSlice := make([]interface{}, 0, len(orderbooks)) // pre-allocate capacity
 
 	for _, ob := range orderbooks {
 		o := ob.(map[string]interface{})

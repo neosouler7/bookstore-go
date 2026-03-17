@@ -28,8 +28,8 @@ func SetOrderbook(api string, exchange string, rJson map[string]interface{}) {
 	askResponse = rData["asks"].([]interface{})
 	bidResponse = rData["bids"].([]interface{})
 
-	askSlice := make([]interface{}, 0, commons.Max(len(askResponse), len(bidResponse))) // 용량 미리 할당
-	bidSlice := make([]interface{}, 0, commons.Max(len(askResponse), len(bidResponse))) // 용량 미리 할당
+	askSlice := make([]interface{}, 0, commons.Max(len(askResponse), len(bidResponse))) // pre-allocate capacity
+	bidSlice := make([]interface{}, 0, commons.Max(len(askResponse), len(bidResponse))) // pre-allocate capacity
 
 	switch api {
 	case "R":
