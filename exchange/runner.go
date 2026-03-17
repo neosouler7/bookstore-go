@@ -96,7 +96,7 @@ func rest(ctx context.Context, name string, pairs []string, restQueue chan<- map
 
 			p := pairs[pairIndex]
 			pairIndex = (pairIndex + 1) % len(pairs)
-			rJson := restmanager.FastHttpRequest2(name, "GET", p)
+			rJson := restmanager.FastHttpRequest(name, "GET", p)
 			select {
 			case restQueue <- rJson:
 			case <-ctx.Done():

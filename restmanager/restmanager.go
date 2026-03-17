@@ -1,7 +1,6 @@
 package restmanager
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -65,92 +64,7 @@ func fastHttpClient() *fasthttp.Client {
 	return c
 }
 
-func FastHttpRequest(c chan<- map[string]interface{}, exchange, method, pair string) {
-	var pairInfo = strings.Split(pair, ":")
-	market, symbol := pairInfo[0], pairInfo[1]
-	epqs := &epqs{}
-	epqs.getEpqs(exchange, market, symbol)
-
-	req, res := fasthttp.AcquireRequest(), fasthttp.AcquireResponse()
-	defer func() {
-		fasthttp.ReleaseRequest(req)
-		fasthttp.ReleaseResponse(res)
-	}()
-
-	req.Header.SetMethod(fasthttp.MethodGet)
-	req.SetRequestURI(epqs.endPoint)
-	req.URI().SetQueryString(epqs.queryString)
-
-	statusCode, body, err := fastHttpClient().GetTimeout(nil, req.URI().String(), time.Duration(5)*time.Second)
-	tgmanager.HandleErr(exchange, err)
-	if len(body) == 0 {
-		errHttpResponseBody := errors.New("empty response body")
-		tgmanager.HandleErr(exchange, errHttpResponseBody)
-	}
-	if statusCode != fasthttp.StatusOK {
-		errHttpResponseStatus := fmt.Errorf("restapi error with status %d", statusCode)
-		tgmanager.HandleErr(exchange, errHttpResponseStatus)
-	}
-
-	// err := fastHttpClient().Do(req, res)
-	// tgmanager.HandleErr(exchange, err)
-
-	// body, statusCode := res.Body(), res.StatusCode()
-	// if len(res.Body()) == 0 {
-	// 	msg := fmt.Sprintf("%s empty response body\n", exchange)
-	// 	tgmanager.HandleErr(msg, errHttpRequest)
-	// }
-	// if statusCode != fasthttp.StatusOK {
-	// 	msg := fmt.Sprintf("%s restapi error with status: %d\n", exchange, statusCode)
-	// 	tgmanager.HandleErr(msg, errHttpRequest)
-	// }
-
-	switch exchange {
-	case "bin":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		// add market, symbol since no value on return
-		rJson.(map[string]interface{})["market"] = market
-		rJson.(map[string]interface{})["symbol"] = symbol
-		c <- rJson.(map[string]interface{})
-
-	case "bif":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		// add market, symbol since no value on return
-		rJson.(map[string]interface{})["market"] = market
-		rJson.(map[string]interface{})["symbol"] = symbol
-		c <- rJson.(map[string]interface{})
-
-	case "bmb":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		c <- rJson.(map[string]interface{})["data"].(map[string]interface{})
-	case "con":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		c <- rJson.(map[string]interface{})
-	case "kbt":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		// add market, symbol since no value on return
-		rJson.(map[string]interface{})["market"] = market
-		rJson.(map[string]interface{})["symbol"] = symbol
-		c <- rJson.(map[string]interface{})
-	case "upb":
-		var rJson []interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		c <- rJson[0].(map[string]interface{})
-	}
-}
-
-func FastHttpRequest2(exchange, method, pair string) map[string]interface{} {
+func FastHttpRequest(exchange, method, pair string) map[string]interface{} {
 	var pairInfo = strings.Split(pair, ":")
 	market, symbol := pairInfo[0], pairInfo[1]
 	epqs := &epqs{}
