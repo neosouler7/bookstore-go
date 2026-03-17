@@ -2,11 +2,9 @@ package redismanager
 
 import (
 	"context"
-	"encoding/csv"
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -246,7 +244,6 @@ func sampledLog(format string, v ...interface{}) {
 }
 
 func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) error {
-	// uid := ulid.MustNew(ulid.Timestamp(time.Now()), entropy).String()
 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
 
 	// Redis Pub
@@ -258,10 +255,6 @@ func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, a
 	// Local logging
 	sampledLog("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
 
-	// // Temp CSV
-	// if err := saveToCSV("orderbook_log.csv", key, value); err != nil {
-	// 	log.Println("csv save error:", err)
-	// }
 	return nil
 }
 
@@ -284,8 +277,6 @@ func subscribeCheck(exchange string) {
 			log.Fatalln(err)
 		}
 
-		// fmt.Printf("[sub] %-15s %s\n", msg.Channel, msg.Payload)
-
 		subTsStr := strings.Split(msg.Payload, "|")[4]
 		pMap.Store(msg.Channel, subTsStr)
 	}
@@ -306,37 +297,4 @@ func ReadLastSentTime(exchange string) (time.Time, error) {
 		return time.Now(), nil
 	}
 	return time.Time{}, nil
-}
-
-func saveToCSV(filename, key, value string) error {
-	// split value by '|'
-	fields := strings.Split(value, "|")
-
-	// final CSV column order
-	record := []string{
-		key,       // prepended key
-		fields[0], // safeAskPrice
-		fields[1], // bestAskPrice
-		fields[2], // bestBidPrice
-		fields[3], // safeBidPrice
-		fields[4], // targetTs
-	}
-
-	fmt.Println(record)
-
-	// open file (create if not exists, append otherwise)
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	writer := csv.NewWriter(f)
-	defer writer.Flush()
-
-	if err := writer.Write(record); err != nil {
-		return err
-	}
-
-	return nil
 }

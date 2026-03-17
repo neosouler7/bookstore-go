@@ -84,40 +84,6 @@ func SendMsg(tgMsg string) {
 	}
 }
 
-// func getLastSentFilePath(exchange string) string {
-// 	execPath, err := os.Executable()
-// 	if err != nil {
-// 		log.Println("Failed to get executable path:", err)
-// 		return "last_sent.txt" // fallback
-// 	}
-// 	dir := filepath.Dir(execPath)
-// 	return filepath.Join(dir, fmt.Sprintf("last_sent_%s.txt", exchange))
-// }
-
-// func readLastSentTime(exchange string) (time.Time, error) {
-// 	path := getLastSentFilePath(exchange)
-// 	data, err := os.ReadFile(path)
-// 	if err != nil {
-// 		if os.IsNotExist(err) {
-// 			return time.Time{}, nil // treat missing file as zero time
-// 		}
-// 		return time.Time{}, err
-// 	}
-
-// 	timestampStr := strings.TrimSpace(string(data))
-// 	unixSec, err := strconv.ParseInt(timestampStr, 10, 64)
-// 	if err != nil {
-// 		return time.Time{}, err
-// 	}
-
-// 	return time.Unix(unixSec, 0), nil
-// }
-
-// func writeLastSentTime(exchange string, t time.Time) error {
-// 	path := getLastSentFilePath(exchange)
-// 	return os.WriteFile(path, []byte(fmt.Sprintf("%d", t.Unix())), 0644)
-// }
-
 func HandleErr(exchange string, err error) {
 	if err == nil {
 		return
@@ -138,26 +104,4 @@ func HandleErr(exchange string, err error) {
 	}
 
 	log.Fatalln(err)
-
-	// if err == nil {
-	// 	return
-	// }
-
-	// now := time.Now()
-	// lastSent, readErr := readLastSentTime(exchange)
-	// if readErr != nil {
-	// 	log.Println("Failed to read last sent time:", readErr) // assume send and record since delivery is uncertain
-	// }
-
-	// if now.Sub(lastSent) >= 1*time.Second {
-	// 	SendMsg(fmt.Sprintf("## ERROR %s %s\n%v", config.GetName(), exchange, err))
-
-	// 	if err := writeLastSentTime(exchange, now); err != nil {
-	// 		log.Println("Failed to write last sent time:", err)
-	// 	}
-	// } else {
-	// 	log.Println("Cooldown active, skipping Telegram message.")
-	// }
-
-	// log.Fatalln(err)
 }
