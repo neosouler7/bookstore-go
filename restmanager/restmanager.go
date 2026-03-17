@@ -70,7 +70,11 @@ func FastHttpRequest(exchange, method, pair string) map[string]interface{} {
 	epqs := &epqs{}
 	epqs.getEpqs(exchange, market, symbol)
 
-	statusCode, body, err := fastHttpClient().GetTimeout(nil, epqs.endPoint+"?"+epqs.queryString, time.Duration(5)*time.Second)
+	url := epqs.endPoint
+	if epqs.queryString != "" {
+		url += "?" + epqs.queryString
+	}
+	statusCode, body, err := fastHttpClient().GetTimeout(nil, url, time.Duration(5)*time.Second)
 	if err != nil {
 		errRestResult := fmt.Errorf("%s|%s HTTP failed for %w", market, symbol, err)
 		tgmanager.HandleErr(exchange, errRestResult)
@@ -87,16 +91,7 @@ func FastHttpRequest(exchange, method, pair string) map[string]interface{} {
 	var value map[string]interface{}
 
 	switch exchange {
-	case "bin":
-		var rJson interface{}
-		commons.Bytes2Json(body, &rJson)
-
-		// add market, symbol since no value on return
-		rJson.(map[string]interface{})["market"] = market
-		rJson.(map[string]interface{})["symbol"] = symbol
-		value = rJson.(map[string]interface{})
-
-	case "bif":
+	case "bin", "bif":
 		var rJson interface{}
 		commons.Bytes2Json(body, &rJson)
 

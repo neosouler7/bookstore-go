@@ -2,17 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"sync"
-)
-
-var (
-	errNotStruct = errors.New("config not struct")
-	errNoField   = errors.New("field not found")
 )
 
 type config struct {
@@ -44,7 +37,7 @@ type apiKey struct {
 var (
 	configCache config
 	cacheOnce   sync.Once
-	cacheMutex  sync.RWMutex
+	pairsCache  sync.Map
 )
 
 func loadConfig() {
@@ -55,71 +48,45 @@ func loadConfig() {
 	}
 	defer file.Close()
 
-	var c config
-	err = json.NewDecoder(file).Decode(&c)
+	err = json.NewDecoder(file).Decode(&configCache)
 	if err != nil {
 		log.Fatalf("Failed to decode config file: %v", err)
 	}
-
-	cacheMutex.Lock()
-	defer cacheMutex.Unlock()
-	configCache = c
 }
 
-func getCachedConfig(key string) reflect.Value {
-	cacheMutex.RLock()
-	defer cacheMutex.RUnlock()
-
-	s := reflect.ValueOf(&configCache).Elem()
-	if s.Kind() != reflect.Struct {
-		log.Fatalln(errNotStruct)
-	}
-
-	f := s.FieldByName(key)
-	if !f.IsValid() {
-		log.Fatalln(errNoField)
-	}
-	return f
-}
-
-func getConfig(key string) interface{} {
-	cacheOnce.Do(loadConfig) // executed only once
-	return getCachedConfig(key).Interface()
+func getCachedConfig() config {
+	cacheOnce.Do(loadConfig)
+	return configCache
 }
 
 func GetName() string {
-	return getConfig("Name").(string)
+	return getCachedConfig().Name
 }
 
 func GetRedis() redis {
-	return getConfig("Redis").(redis)
+	return getCachedConfig().Redis
 }
 
 func GetTg() tg {
-	return getConfig("Tg").(tg)
+	return getCachedConfig().Tg
 }
 
 func GetApiKey(exchange string) apiKey {
-	c := getConfig("ApiKey").(map[string]interface{})[exchange].(map[string]interface{})
+	c := getCachedConfig().ApiKey[exchange].(map[string]interface{})
 	return apiKey{c["public"].(string), c["secret"].(string)}
 }
 
 func GetRateLimit(exchange string) (float64, float64) {
-	c := getConfig("RateLimit").(map[string]interface{})
+	c := getCachedConfig().RateLimit
 	return c["buffer"].(float64), c[exchange].(float64)
 }
 
-// deprecated
-// func GetPairs(exchange string) []string {
-// 	var pairs []string
-// 	for _, p := range getConfig("Pairs").(map[string]interface{})[exchange].([]interface{}) {
-// 		pairs = append(pairs, p.(string))
-// 	}
-// 	return pairs
-// }
-
 func GetPairs(exchange string) []string {
-	pairsData := getConfig("Pairs").(map[string]interface{})
+	if v, ok := pairsCache.Load(exchange); ok {
+		return v.([]string)
+	}
+
+	pairsData := getCachedConfig().Pairs
 	exchangeData, ok := pairsData[exchange].(map[string]interface{})
 	if !ok {
 		log.Printf("Exchange %s not found in Pairs", exchange)
@@ -143,5 +110,6 @@ func GetPairs(exchange string) []string {
 		}
 	}
 
+	pairsCache.Store(exchange, pairs)
 	return pairs
 }

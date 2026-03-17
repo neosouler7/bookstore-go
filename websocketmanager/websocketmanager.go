@@ -79,11 +79,15 @@ func (h *hostPath) getHostPath(exchange string) {
 }
 
 func SendMsg(exchange, msg string) {
+	wmu.Lock()
 	err := Conn(exchange).WriteMessage(websocket.TextMessage, []byte(msg))
+	wmu.Unlock()
 	tgmanager.HandleErr(exchange, err)
 }
 
 func Ping(exchange string) {
+	wmu.Lock()
 	err := Conn(exchange).WriteMessage(websocket.PingMessage, []byte{})
+	wmu.Unlock()
 	tgmanager.HandleErr(exchange, err)
 }
