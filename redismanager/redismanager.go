@@ -32,6 +32,8 @@ var (
 	// memory monitoring
 	memStats     runtime.MemStats
 	lastMemCheck time.Time
+
+	targetCache sync.Map // cache for target volume/amount maps, keyed by exchange
 )
 
 type orderbook struct {
@@ -98,10 +100,19 @@ func client() *redis.Client {
 	return rdb
 }
 
+func getTargetMap(exchange string) map[string]string {
+	if v, ok := targetCache.Load(exchange); ok {
+		return v.(map[string]string)
+	}
+	m := commons.GetTargetVolumeOrAmountMap(exchange)
+	targetCache.Store(exchange, m)
+	return m
+}
+
 func PreHandleOrderbook(api, exchange, market, symbol string, askSlice, bidSlice []interface{}, ts string) error {
 	ob := newOrderbook(exchange, market, symbol, ts)
 
-	targetVolumeOrAmount := strings.Split(commons.GetTargetVolumeOrAmountMap(exchange)[market+":"+symbol], "|")
+	targetVolumeOrAmount := strings.Split(getTargetMap(exchange)[market+":"+symbol], "|")
 	safeTarget, bestTarget := targetVolumeOrAmount[0], targetVolumeOrAmount[1]
 
 	// calculate targetPrice by volume (deprecated June 2025 - for fbV1)
