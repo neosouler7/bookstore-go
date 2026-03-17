@@ -74,7 +74,7 @@ func main() {
 		usage()
 	}
 
-	tgMsg := fmt.Sprintf("## START %s %s\n- version 1.2.0", config.GetName(), *exchange)
+	tgMsg := fmt.Sprintf("## START %s %s\n- version 1.3.0", config.GetName(), *exchange)
 	tgmanager.SendMsg(tgMsg)
 	run(*exchange)
 }
