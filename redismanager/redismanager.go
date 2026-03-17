@@ -246,11 +246,15 @@ func sampledLog(format string, v ...interface{}) {
 func publish(key, targetTs string, ob *orderbook, serverLatency, localLatency, actualLatency int, api string) error {
 	value := fmt.Sprintf("%s|%s|%s|%s|%s", ob.safeAskPrice, ob.bestAskPrice, ob.bestBidPrice, ob.safeBidPrice, targetTs)
 
-	// Redis Pub
-	err := client().Publish(ctx, key, value).Err()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	// Redis Pub — async, skip if a newer update has already been stored
+	go func(key, targetTs, value string) {
+		if current, ok := sMap.Load(key); ok && current > targetTs {
+			return // superseded by a newer update
+		}
+		if err := client().Publish(ctx, key, value).Err(); err != nil {
+			log.Fatalln(err)
+		}
+	}(key, targetTs, value)
 
 	// Local logging
 	sampledLog("[pub] %s %-15s %s %4dms %4dms %4dms\n", api, key, value, serverLatency, localLatency, actualLatency)
